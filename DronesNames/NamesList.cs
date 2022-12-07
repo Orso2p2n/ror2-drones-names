@@ -5,6 +5,8 @@ namespace DronesNames
 {
     public class NamesList
     {
+        public static Xoroshiro128Plus rng = new Xoroshiro128Plus(0);
+
         public static Dictionary<string, Dictionary<string, string>> namesByBodyNames = new Dictionary<string, Dictionary<string, string>>()
         {
             { "EmergencyDroneBody",       new Dictionary<string, string>() },       // (Emergency drone)
@@ -56,24 +58,48 @@ namespace DronesNames
 
         }
 
-        public static string GetRandomNameForCharacterBody(RoR2.CharacterBody characterBody)
+        public static string GetRandomNameForCharacterMaster(RoR2.CharacterMaster characterMaster)
         {
-            var bodyIndex = characterBody.bodyIndex;
+            // Get network ID of character body
+            if (characterMaster == null || characterMaster.networkIdentity == null || characterMaster.networkIdentity.netId == null)
+            {
+                return "";
+            }
+
+            var netIdValue = characterMaster.networkIdentity.netId.Value;
+            
+            // If already saved in the tokens list, just return that
+            if (DronesNames.savedTokens.ContainsKey(netIdValue))
+            {
+                Log.LogDebug("Found token " + DronesNames.savedTokens[netIdValue] + " at ID " + netIdValue);
+                return DronesNames.savedTokens[netIdValue];
+            }
+
+            var bodyIndex = characterMaster.GetBody().bodyIndex;
             var bodyName = RoR2.BodyCatalog.GetBodyName(bodyIndex);
 
+            // If it's not in the list of names, skip
             if (!namesByBodyNames.ContainsKey(bodyName))
             {
                 return "";
             }
 
+            // Get the names dictionary <token,name>. If it's empty, skip
             var namesDictionary = namesByBodyNames[bodyName];
             if (namesDictionary.Count == 0)
             {
                 return "";
             }
 
-            var randomIndex = UnityEngine.Random.Range(0, namesDictionary.Count);
+            // Set seed of rng and draw a token
+            rng.ResetSeed(netIdValue);
+            var randomIndex = rng.RangeInt(0, namesDictionary.Count);
             string randomToken = namesDictionary.ElementAt(randomIndex).Key;
+
+            Log.LogDebug("RNG seed is " + netIdValue + ", returning token " + randomToken + " at index " + randomIndex);
+
+            // Add to the saved tokens
+            DronesNames.savedTokens.Add(netIdValue, randomToken);
 
             return randomToken;
         }
