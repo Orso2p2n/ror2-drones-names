@@ -1,0 +1,1290 @@
+// Decompiled with JetBrains decompiler
+// Type: RoR2.CharacterMaster
+// Assembly: RoR2, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+// MVID: ABEE4F3B-4618-4662-B4D0-BD0BC9965114
+// Assembly location: D:\Games\SteamLibrary\steamapps\common\Risk of Rain 2\Risk of Rain 2_Data\Managed\RoR2.dll
+
+using EntityStates;
+using EntityStates.GummyClone;
+using RoR2.CharacterAI;
+using RoR2.Items;
+using RoR2.Stats;
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
+using UnityEngine;
+using UnityEngine.Events;
+using UnityEngine.Networking;
+using UnityEngine.Serialization;
+
+namespace RoR2
+{
+  [DisallowMultipleComponent]
+  [RequireComponent(typeof (MinionOwnership))]
+  [RequireComponent(typeof (Inventory))]
+  public class CharacterMasterRef : NetworkBehaviour
+  {
+    [Tooltip("This is assigned to the prefab automatically by MasterCatalog at runtime. Do not set this value manually.")]
+    [HideInInspector]
+    [SerializeField]
+    private int _masterIndex;
+    [Tooltip("The prefab of this character's body.")]
+    public GameObject bodyPrefab;
+    [Tooltip("Whether or not to spawn the body at the position of this manager object as soon as Start runs.")]
+    public bool spawnOnStart;
+    [FormerlySerializedAs("teamIndex")]
+    [SerializeField]
+    [Tooltip("The team of the body.")]
+    private TeamIndex _teamIndex;
+    public UnityEvent onBodyDeath;
+    [Tooltip("Whether or not to destroy this master when the body dies.")]
+    public bool destroyOnBodyDeath = true;
+    private static List<CharacterMaster> instancesList = new List<CharacterMaster>();
+    private static ReadOnlyCollection<CharacterMaster> _readOnlyInstancesList = new ReadOnlyCollection<CharacterMaster>((IList<CharacterMaster>) CharacterMaster.instancesList);
+    private BaseAI[] aiComponents;
+    private const uint bodyDirtyBit = 1;
+    private const uint moneyDirtyBit = 2;
+    private const uint survivalTimeDirtyBit = 4;
+    private const uint teamDirtyBit = 8;
+    private const uint loadoutDirtyBit = 16;
+    private const uint miscFlagsDirtyBit = 32;
+    private const uint voidCoinsDirtyBit = 64;
+    private const uint allDirtyBits = 127;
+    public readonly Loadout loadout = new Loadout();
+    private NetworkInstanceId _bodyInstanceId = NetworkInstanceId.Invalid;
+    private GameObject resolvedBodyInstance;
+    private bool bodyResolved;
+    private uint _money;
+    private uint _voidCoins;
+    public bool isBoss;
+    private Xoroshiro128Plus cloverVoidRng;
+    [NonSerialized]
+    private List<DeployableInfo> deployablesList;
+    public bool preventGameOver = true;
+    private Vector3 deathAimVector = Vector3.zero;
+    private bool killedByUnsafeArea;
+    private const float respawnDelayDuration = 2f;
+    private float _internalSurvivalTime;
+    private BodyIndex killerBodyIndex = BodyIndex.None;
+    private bool preventRespawnUntilNextStageServer;
+    private bool godMode;
+    private uint lostBodyToDeathFlag = 1;
+    private uint _miscFlags;
+    private static int kCmdCmdRespawn = 1097984413;
+
+    public MasterCatalog.MasterIndex masterIndex
+    {
+      get => (MasterCatalog.MasterIndex) this._masterIndex;
+      set => this._masterIndex = (int) value;
+    }
+
+    public NetworkIdentity networkIdentity { get; private set; }
+
+    public bool hasEffectiveAuthority { get; private set; }
+
+    public static event Action<CharacterMaster> onStartGlobal;
+
+    public static event Action<CharacterMaster> onCharacterMasterDiscovered;
+
+    public static event Action<CharacterMaster> onCharacterMasterLost;
+
+    private void UpdateAuthority() => this.hasEffectiveAuthority = Util.HasEffectiveAuthority(this.networkIdentity);
+
+    public override void OnStartAuthority()
+    {
+      base.OnStartAuthority();
+      this.UpdateAuthority();
+    }
+
+    public override void OnStopAuthority()
+    {
+      this.UpdateAuthority();
+      base.OnStopAuthority();
+    }
+
+    public event Action<CharacterBody> onBodyStart;
+
+    public event Action<CharacterBody> onBodyDestroyed;
+
+    public TeamIndex teamIndex
+    {
+      get => this._teamIndex;
+      set
+      {
+        if (this._teamIndex == value)
+          return;
+        this._teamIndex = value;
+        if (!NetworkServer.active)
+          return;
+        this.SetDirtyBit(8U);
+      }
+    }
+
+    public static ReadOnlyCollection<CharacterMaster> readOnlyInstancesList => CharacterMaster._readOnlyInstancesList;
+
+    public Inventory inventory { private set; get; }
+
+    public PlayerCharacterMasterController playerCharacterMasterController { get; private set; }
+
+    public PlayerStatsComponent playerStatsComponent { get; private set; }
+
+    public MinionOwnership minionOwnership { get; private set; }
+
+    [Server]
+    public void SetLoadoutServer(Loadout newLoadout)
+    {
+      if (!NetworkServer.active)
+      {
+        Debug.LogWarning((object) "[Server] function 'System.Void RoR2.CharacterMaster::SetLoadoutServer(RoR2.Loadout)' called on client");
+      }
+      else
+      {
+        newLoadout.Copy(this.loadout);
+        this.SetDirtyBit(16U);
+      }
+    }
+
+    private NetworkInstanceId bodyInstanceId
+    {
+      get => this._bodyInstanceId;
+      set
+      {
+        if (value == this._bodyInstanceId)
+          return;
+        this.SetDirtyBit(1U);
+        this._bodyInstanceId = value;
+      }
+    }
+
+    public BodyIndex backupBodyIndex { get; private set; }
+
+    private void StoreBackupBodyIndex()
+    {
+      if (!(bool) (UnityEngine.Object) this.resolvedBodyInstance)
+        return;
+      CharacterBody component = this.resolvedBodyInstance.GetComponent<CharacterBody>();
+      if (!(bool) (UnityEngine.Object) component)
+        return;
+      this.backupBodyIndex = component.bodyIndex;
+    }
+
+    private void OnSyncBodyInstanceId(NetworkInstanceId value)
+    {
+      this.resolvedBodyInstance = (GameObject) null;
+      this.bodyResolved = value == NetworkInstanceId.Invalid;
+      this._bodyInstanceId = value;
+    }
+
+    private GameObject bodyInstanceObject
+    {
+      get
+      {
+        if (!this.bodyResolved)
+        {
+          this.resolvedBodyInstance = Util.FindNetworkObject(this.bodyInstanceId);
+          if ((bool) (UnityEngine.Object) this.resolvedBodyInstance)
+          {
+            this.bodyResolved = true;
+            this.StoreBackupBodyIndex();
+          }
+        }
+        return this.resolvedBodyInstance;
+      }
+      set
+      {
+        NetworkInstanceId networkInstanceId = NetworkInstanceId.Invalid;
+        this.resolvedBodyInstance = (GameObject) null;
+        this.bodyResolved = true;
+        if ((bool) (UnityEngine.Object) value)
+        {
+          NetworkIdentity component = value.GetComponent<NetworkIdentity>();
+          if ((bool) (UnityEngine.Object) component)
+          {
+            networkInstanceId = component.netId;
+            this.resolvedBodyInstance = value;
+            this.StoreBackupBodyIndex();
+          }
+        }
+        this.bodyInstanceId = networkInstanceId;
+      }
+    }
+
+    [Server]
+    public void GiveExperience(ulong amount)
+    {
+      if (!NetworkServer.active)
+        Debug.LogWarning((object) "[Server] function 'System.Void RoR2.CharacterMaster::GiveExperience(System.UInt64)' called on client");
+      else
+        TeamManager.instance.GiveTeamExperience(this.teamIndex, amount);
+    }
+
+    public uint money
+    {
+      get => this._money;
+      set
+      {
+        if ((int) value == (int) this._money)
+          return;
+        this.SetDirtyBit(2U);
+        this._money = value;
+      }
+    }
+
+    public void GiveMoney(uint amount)
+    {
+      this.money += amount;
+      StatManager.OnGoldCollected(this, (ulong) amount);
+    }
+
+    public uint voidCoins
+    {
+      get => this._voidCoins;
+      set
+      {
+        if ((int) value == (int) this._voidCoins)
+          return;
+        this.SetDirtyBit(64U);
+        this._voidCoins = value;
+      }
+    }
+
+    public void GiveVoidCoins(uint amount) => this.voidCoins += amount;
+
+    public float luck { get; set; }
+
+    public int GetDeployableSameSlotLimit(DeployableSlot slot)
+    {
+      int deployableSameSlotLimit = 0;
+      int num = 1;
+      if (RunArtifactManager.instance.IsArtifactEnabled(RoR2Content.Artifacts.swarmsArtifactDef))
+        num = 2;
+      switch (slot)
+      {
+        case DeployableSlot.EngiMine:
+          deployableSameSlotLimit = 4;
+          if ((bool) (UnityEngine.Object) this.bodyInstanceObject)
+          {
+            deployableSameSlotLimit = this.bodyInstanceObject.GetComponent<SkillLocator>().secondary.maxStock;
+            break;
+          }
+          break;
+        case DeployableSlot.EngiTurret:
+          deployableSameSlotLimit = this.inventory.GetItemCount(DLC1Content.Items.EquipmentMagazineVoid) <= 0 ? 2 : 3;
+          break;
+        case DeployableSlot.BeetleGuardAlly:
+          deployableSameSlotLimit = this.inventory.GetItemCount(RoR2Content.Items.BeetleGland) * num;
+          break;
+        case DeployableSlot.EngiBubbleShield:
+          deployableSameSlotLimit = 1;
+          break;
+        case DeployableSlot.LoaderPylon:
+          deployableSameSlotLimit = 3;
+          break;
+        case DeployableSlot.EngiSpiderMine:
+          deployableSameSlotLimit = 4;
+          if ((bool) (UnityEngine.Object) this.bodyInstanceObject)
+          {
+            deployableSameSlotLimit = this.bodyInstanceObject.GetComponent<SkillLocator>().secondary.maxStock;
+            break;
+          }
+          break;
+        case DeployableSlot.RoboBallMini:
+          deployableSameSlotLimit = 3;
+          break;
+        case DeployableSlot.ParentPodAlly:
+          deployableSameSlotLimit = this.inventory.GetItemCount(JunkContent.Items.Incubator) * num;
+          break;
+        case DeployableSlot.ParentAlly:
+          deployableSameSlotLimit = this.inventory.GetItemCount(JunkContent.Items.Incubator) * num;
+          break;
+        case DeployableSlot.PowerWard:
+          deployableSameSlotLimit = 1;
+          break;
+        case DeployableSlot.CrippleWard:
+          deployableSameSlotLimit = 5;
+          break;
+        case DeployableSlot.DeathProjectile:
+          deployableSameSlotLimit = 3;
+          break;
+        case DeployableSlot.RoboBallRedBuddy:
+        case DeployableSlot.RoboBallGreenBuddy:
+          deployableSameSlotLimit = num;
+          break;
+        case DeployableSlot.GummyClone:
+          deployableSameSlotLimit = 3;
+          break;
+        case DeployableSlot.LunarSunBomb:
+          deployableSameSlotLimit = LunarSunBehavior.GetMaxProjectiles(this.inventory);
+          break;
+        case DeployableSlot.VendingMachine:
+          deployableSameSlotLimit = 1;
+          break;
+        case DeployableSlot.VoidMegaCrabItem:
+          deployableSameSlotLimit = VoidMegaCrabItemBehavior.GetMaxProjectiles(this.inventory);
+          break;
+        case DeployableSlot.DroneWeaponsDrone:
+          deployableSameSlotLimit = 1;
+          break;
+        case DeployableSlot.MinorConstructOnKill:
+          deployableSameSlotLimit = this.inventory.GetItemCount(DLC1Content.Items.MinorConstructOnKill) * 4;
+          break;
+        case DeployableSlot.CaptainSupplyDrop:
+          deployableSameSlotLimit = 2;
+          break;
+      }
+      return deployableSameSlotLimit;
+    }
+
+    [Server]
+    public void AddDeployable(Deployable deployable, DeployableSlot slot)
+    {
+      if (!NetworkServer.active)
+      {
+        Debug.LogWarning((object) "[Server] function 'System.Void RoR2.CharacterMaster::AddDeployable(RoR2.Deployable,RoR2.DeployableSlot)' called on client");
+      }
+      else
+      {
+        if ((bool) (UnityEngine.Object) deployable.ownerMaster)
+          Debug.LogErrorFormat("Attempted to add deployable {0} which already belongs to master {1} to master {2}.", (object) deployable.gameObject, (object) deployable.ownerMaster.gameObject, (object) this.gameObject);
+        if (this.deployablesList == null)
+          this.deployablesList = new List<DeployableInfo>();
+        int num = 0;
+        int deployableSameSlotLimit = this.GetDeployableSameSlotLimit(slot);
+        for (int index = this.deployablesList.Count - 1; index >= 0; --index)
+        {
+          if (this.deployablesList[index].slot == slot)
+          {
+            ++num;
+            if (num >= deployableSameSlotLimit)
+            {
+              Deployable deployable1 = this.deployablesList[index].deployable;
+              this.deployablesList.RemoveAt(index);
+              deployable1.ownerMaster = (CharacterMaster) null;
+              deployable1.onUndeploy.Invoke();
+            }
+          }
+        }
+        this.deployablesList.Add(new DeployableInfo()
+        {
+          deployable = deployable,
+          slot = slot
+        });
+        deployable.ownerMaster = this;
+      }
+    }
+
+    [Server]
+    public int GetDeployableCount(DeployableSlot slot)
+    {
+      if (!NetworkServer.active)
+      {
+        Debug.LogWarning((object) "[Server] function 'System.Int32 RoR2.CharacterMaster::GetDeployableCount(RoR2.DeployableSlot)' called on client");
+        return 0;
+      }
+      if (this.deployablesList == null)
+        return 0;
+      int deployableCount = 0;
+      for (int index = this.deployablesList.Count - 1; index >= 0; --index)
+      {
+        if (this.deployablesList[index].slot == slot)
+          ++deployableCount;
+      }
+      return deployableCount;
+    }
+
+    [Server]
+    public bool IsDeployableLimited(DeployableSlot slot)
+    {
+      if (NetworkServer.active)
+        return this.GetDeployableCount(slot) >= this.GetDeployableSameSlotLimit(slot);
+      Debug.LogWarning((object) "[Server] function 'System.Boolean RoR2.CharacterMaster::IsDeployableLimited(RoR2.DeployableSlot)' called on client");
+      return false;
+    }
+
+    [Server]
+    public void RemoveDeployable(Deployable deployable)
+    {
+      if (!NetworkServer.active)
+      {
+        Debug.LogWarning((object) "[Server] function 'System.Void RoR2.CharacterMaster::RemoveDeployable(RoR2.Deployable)' called on client");
+      }
+      else
+      {
+        if (this.deployablesList == null || (UnityEngine.Object) deployable.ownerMaster != (UnityEngine.Object) this)
+          return;
+        for (int index = this.deployablesList.Count - 1; index >= 0; --index)
+        {
+          if ((UnityEngine.Object) this.deployablesList[index].deployable == (UnityEngine.Object) deployable)
+            this.deployablesList.RemoveAt(index);
+        }
+        deployable.ownerMaster = (CharacterMaster) null;
+      }
+    }
+
+    [Server]
+    public bool IsDeployableSlotAvailable(DeployableSlot deployableSlot)
+    {
+      if (NetworkServer.active)
+        return this.GetDeployableCount(deployableSlot) < this.GetDeployableSameSlotLimit(deployableSlot);
+      Debug.LogWarning((object) "[Server] function 'System.Boolean RoR2.CharacterMaster::IsDeployableSlotAvailable(RoR2.DeployableSlot)' called on client");
+      return false;
+    }
+
+    [Server]
+    public CharacterBody SpawnBody(Vector3 position, Quaternion rotation)
+    {
+      if (!NetworkServer.active)
+      {
+        Debug.LogWarning((object) "[Server] function 'RoR2.CharacterBody RoR2.CharacterMaster::SpawnBody(UnityEngine.Vector3,UnityEngine.Quaternion)' called on client");
+        return (CharacterBody) null;
+      }
+      if ((bool) (UnityEngine.Object) this.bodyInstanceObject)
+      {
+        Debug.LogError((object) "Character cannot have more than one body at this time.");
+        return (CharacterBody) null;
+      }
+      if (!(bool) (UnityEngine.Object) this.bodyPrefab)
+        Debug.LogErrorFormat("Attempted to spawn body of character master {0} with no body prefab.", (object) this.gameObject);
+      if (!(bool) (UnityEngine.Object) this.bodyPrefab.GetComponent<CharacterBody>())
+        Debug.LogErrorFormat("Attempted to spawn body of character master {0} with a body prefab that has no {1} component attached.", (object) this.gameObject, (object) typeof (CharacterBody).Name);
+      bool component1 = (bool) (UnityEngine.Object) this.bodyPrefab.GetComponent<CharacterDirection>();
+      GameObject gameObject = UnityEngine.Object.Instantiate<GameObject>(this.bodyPrefab, position, component1 ? Quaternion.identity : rotation);
+      CharacterBody component2 = gameObject.GetComponent<CharacterBody>();
+      component2.masterObject = this.gameObject;
+      component2.teamComponent.teamIndex = this.teamIndex;
+      component2.SetLoadoutServer(this.loadout);
+      if (component1)
+        gameObject.GetComponent<CharacterDirection>().yaw = rotation.eulerAngles.y;
+      NetworkConnection clientAuthorityOwner = this.GetComponent<NetworkIdentity>().clientAuthorityOwner;
+      if (clientAuthorityOwner != null)
+      {
+        clientAuthorityOwner.isReady = true;
+        NetworkServer.SpawnWithClientAuthority(gameObject, clientAuthorityOwner);
+      }
+      else
+        NetworkServer.Spawn(gameObject);
+      this.bodyInstanceObject = gameObject;
+      Run.instance.OnServerCharacterBodySpawned(component2);
+      return component2;
+    }
+
+    [Server]
+    public void DestroyBody()
+    {
+      if (!NetworkServer.active)
+      {
+        Debug.LogWarning((object) "[Server] function 'System.Void RoR2.CharacterMaster::DestroyBody()' called on client");
+      }
+      else
+      {
+        if (!(bool) (UnityEngine.Object) this.bodyInstanceObject)
+          return;
+        CharacterBody body = this.GetBody();
+        UnityEngine.Object.Destroy((UnityEngine.Object) this.bodyInstanceObject);
+        this.OnBodyDestroyed(body);
+        this.bodyInstanceObject = (GameObject) null;
+      }
+    }
+
+    public GameObject GetBodyObject() => this.bodyInstanceObject;
+
+    public bool hasBody => (bool) (UnityEngine.Object) this.bodyInstanceObject;
+
+    public CharacterBody GetBody()
+    {
+      GameObject bodyObject = this.GetBodyObject();
+      return !(bool) (UnityEngine.Object) bodyObject ? (CharacterBody) null : bodyObject.GetComponent<CharacterBody>();
+    }
+
+    private void Awake()
+    {
+      this.networkIdentity = this.GetComponent<NetworkIdentity>();
+      this.inventory = this.GetComponent<Inventory>();
+      this.aiComponents = NetworkServer.active ? this.GetComponents<BaseAI>() : Array.Empty<BaseAI>();
+      this.playerCharacterMasterController = this.GetComponent<PlayerCharacterMasterController>();
+      this.playerStatsComponent = this.GetComponent<PlayerStatsComponent>();
+      this.minionOwnership = this.GetComponent<MinionOwnership>();
+      this.inventory.onInventoryChanged += new Action(this.OnInventoryChanged);
+      this.inventory.onItemAddedClient += new Action<ItemIndex>(this.OnItemAddedClient);
+      this.inventory.onEquipmentExternalRestockServer += new Action(this.OnInventoryEquipmentExternalRestockServer);
+      this.OnInventoryChanged();
+      Stage.onServerStageBegin += new Action<Stage>(this.OnServerStageBegin);
+    }
+
+    private void OnItemAddedClient(ItemIndex itemIndex) => this.StartCoroutine(this.HighlightNewItem(itemIndex));
+
+    private IEnumerator HighlightNewItem(ItemIndex itemIndex)
+    {
+      yield return (object) new WaitForSeconds(0.05f);
+      GameObject bodyObject = this.GetBodyObject();
+      if ((bool) (UnityEngine.Object) bodyObject)
+      {
+        ModelLocator component1 = bodyObject.GetComponent<ModelLocator>();
+        if ((bool) (UnityEngine.Object) component1)
+        {
+          Transform modelTransform = component1.modelTransform;
+          if ((bool) (UnityEngine.Object) modelTransform)
+          {
+            CharacterModel component2 = modelTransform.GetComponent<CharacterModel>();
+            if ((bool) (UnityEngine.Object) component2)
+              component2.HighlightItemDisplay(itemIndex);
+          }
+        }
+      }
+    }
+
+    private void Start()
+    {
+      this.UpdateAuthority();
+      if (NetworkServer.active && this.spawnOnStart && !(bool) (UnityEngine.Object) this.bodyInstanceObject)
+        this.SpawnBodyHere();
+      Action<CharacterMaster> onStartGlobal = CharacterMaster.onStartGlobal;
+      if (onStartGlobal == null)
+        return;
+      onStartGlobal(this);
+    }
+
+    private void OnInventoryChanged()
+    {
+      this.luck = 0.0f;
+      this.luck += (float) this.inventory.GetItemCount(RoR2Content.Items.Clover);
+      this.luck -= (float) this.inventory.GetItemCount(RoR2Content.Items.LunarBadLuck);
+      if (NetworkServer.active && (bool) (UnityEngine.Object) this.inventory)
+      {
+        CharacterBody body = this.GetBody();
+        if ((bool) (UnityEngine.Object) body && body.bodyIndex != BodyCatalog.FindBodyIndex("HereticBody") && this.inventory.GetItemCount(RoR2Content.Items.LunarPrimaryReplacement.itemIndex) > 0 && this.inventory.GetItemCount(RoR2Content.Items.LunarSecondaryReplacement.itemIndex) > 0 && this.inventory.GetItemCount(RoR2Content.Items.LunarSpecialReplacement.itemIndex) > 0 && this.inventory.GetItemCount(RoR2Content.Items.LunarUtilityReplacement.itemIndex) > 0)
+          this.TransformBody("HereticBody");
+      }
+      this.SetUpGummyClone();
+    }
+
+    private void OnInventoryEquipmentExternalRestockServer()
+    {
+      CharacterBody body = this.GetBody();
+      if (!(bool) (UnityEngine.Object) body)
+        return;
+      EffectData effectData = new EffectData();
+      effectData.origin = body.corePosition;
+      effectData.SetNetworkedObjectReference(body.gameObject);
+      EffectManager.SpawnEffect(LegacyResourcesAPI.Load<GameObject>("Prefabs/Effects/EquipmentRestockEffect"), effectData, true);
+    }
+
+    [Server]
+    public void SpawnBodyHere()
+    {
+      if (!NetworkServer.active)
+        Debug.LogWarning((object) "[Server] function 'System.Void RoR2.CharacterMaster::SpawnBodyHere()' called on client");
+      else
+        this.SpawnBody(this.transform.position, this.transform.rotation);
+    }
+
+    private void OnEnable()
+    {
+      CharacterMaster.instancesList.Add(this);
+      Action<CharacterMaster> masterDiscovered = CharacterMaster.onCharacterMasterDiscovered;
+      if (masterDiscovered == null)
+        return;
+      masterDiscovered(this);
+    }
+
+    private void OnDisable()
+    {
+      try
+      {
+        Action<CharacterMaster> characterMasterLost = CharacterMaster.onCharacterMasterLost;
+        if (characterMasterLost != null)
+          characterMasterLost(this);
+      }
+      catch (Exception ex)
+      {
+        Debug.LogError((object) ex);
+      }
+      CharacterMaster.instancesList.Remove(this);
+    }
+
+    private void OnDestroy()
+    {
+      if (this.isBoss)
+        this.isBoss = false;
+      Stage.onServerStageBegin -= new Action<Stage>(this.OnServerStageBegin);
+    }
+
+    public void OnBodyStart(CharacterBody body)
+    {
+      if (NetworkServer.active)
+        this.lostBodyToDeath = false;
+      this.preventGameOver = true;
+      this.killerBodyIndex = BodyIndex.None;
+      this.killedByUnsafeArea = false;
+      body.RecalculateStats();
+      if (NetworkServer.active)
+      {
+        foreach (BaseAI aiComponent in this.aiComponents)
+          aiComponent.OnBodyStart(body);
+      }
+      if ((bool) (UnityEngine.Object) this.playerCharacterMasterController)
+      {
+        if ((bool) (UnityEngine.Object) this.playerCharacterMasterController.networkUserObject)
+        {
+          int num = this.playerCharacterMasterController.networkUserObject.GetComponent<NetworkIdentity>().isLocalPlayer ? 1 : 0;
+        }
+        this.playerCharacterMasterController.OnBodyStart();
+      }
+      if (this.inventory.GetItemCount(RoR2Content.Items.Ghost) > 0)
+      {
+        int num1 = (int) Util.PlaySound("Play_item_proc_ghostOnKill", body.gameObject);
+      }
+      if (NetworkServer.active)
+      {
+        HealthComponent healthComponent = body.healthComponent;
+        if ((bool) (UnityEngine.Object) healthComponent)
+          healthComponent.Networkhealth = this.teamIndex != TeamIndex.Player || Run.instance.selectedDifficulty < DifficultyIndex.Eclipse1 ? healthComponent.fullHealth : healthComponent.fullHealth * 0.5f;
+        this.UpdateBodyGodMode();
+        this.StartLifeStopwatch();
+      }
+      this.SetUpGummyClone();
+      Action<CharacterBody> onBodyStart = this.onBodyStart;
+      if (onBodyStart == null)
+        return;
+      onBodyStart(body);
+    }
+
+    public Vector3 deathFootPosition { get; private set; } = Vector3.zero;
+
+    [Server]
+    public bool IsExtraLifePendingServer()
+    {
+      if (!NetworkServer.active)
+      {
+        Debug.LogWarning((object) "[Server] function 'System.Boolean RoR2.CharacterMaster::IsExtraLifePendingServer()' called on client");
+        return false;
+      }
+      return this.IsInvoking("RespawnExtraLife") || this.IsInvoking("RespawnExtraLifeVoid");
+    }
+
+    [Server]
+    public bool IsDeadAndOutOfLivesServer()
+    {
+      if (!NetworkServer.active)
+      {
+        Debug.LogWarning((object) "[Server] function 'System.Boolean RoR2.CharacterMaster::IsDeadAndOutOfLivesServer()' called on client");
+        return false;
+      }
+      CharacterBody body = this.GetBody();
+      return (!(bool) (UnityEngine.Object) body || !body.healthComponent.alive) && this.inventory.GetItemCount(RoR2Content.Items.ExtraLife) <= 0 && this.inventory.GetItemCount(DLC1Content.Items.ExtraLifeVoid) <= 0 && !this.IsExtraLifePendingServer();
+    }
+
+    public void OnBodyDeath(CharacterBody body)
+    {
+      if (NetworkServer.active)
+      {
+        this.lostBodyToDeath = true;
+        this.deathFootPosition = body.footPosition;
+        foreach (BaseAI aiComponent in this.aiComponents)
+          aiComponent.OnBodyDeath(body);
+        if ((bool) (UnityEngine.Object) this.playerCharacterMasterController)
+          this.playerCharacterMasterController.OnBodyDeath();
+        if (this.inventory.GetItemCount(RoR2Content.Items.ExtraLife) > 0)
+        {
+          this.inventory.RemoveItem(RoR2Content.Items.ExtraLife);
+          this.Invoke("RespawnExtraLife", 2f);
+          this.Invoke("PlayExtraLifeSFX", 1f);
+        }
+        else if (this.inventory.GetItemCount(DLC1Content.Items.ExtraLifeVoid) > 0)
+        {
+          this.inventory.RemoveItem(DLC1Content.Items.ExtraLifeVoid);
+          this.Invoke("RespawnExtraLifeVoid", 2f);
+          this.Invoke("PlayExtraLifeVoidSFX", 1f);
+        }
+        else
+        {
+          if (this.destroyOnBodyDeath)
+            UnityEngine.Object.Destroy((UnityEngine.Object) this.gameObject, 1f);
+          this.preventGameOver = false;
+          this.preventRespawnUntilNextStageServer = true;
+        }
+        this.ResetLifeStopwatch();
+      }
+      this.onBodyDeath?.Invoke();
+    }
+
+    public void TrueKill() => this.TrueKill((GameObject) null, (GameObject) null, DamageType.Generic);
+
+    public void TrueKill(
+      GameObject killerOverride = null,
+      GameObject inflictorOverride = null,
+      DamageType damageTypeOverride = DamageType.Generic)
+    {
+      int itemCount = this.inventory.GetItemCount(RoR2Content.Items.ExtraLife);
+      if (itemCount > 0)
+      {
+        this.inventory.ResetItem(RoR2Content.Items.ExtraLife);
+        this.inventory.GiveItem(RoR2Content.Items.ExtraLifeConsumed, itemCount);
+        CharacterMasterNotificationQueue.SendTransformNotification(this, RoR2Content.Items.ExtraLife.itemIndex, RoR2Content.Items.ExtraLifeConsumed.itemIndex, CharacterMasterNotificationQueue.TransformationType.Default);
+      }
+      if (this.inventory.GetItemCount(DLC1Content.Items.ExtraLifeVoid) > 0)
+      {
+        this.inventory.ResetItem(DLC1Content.Items.ExtraLifeVoid);
+        this.inventory.GiveItem(DLC1Content.Items.ExtraLifeVoidConsumed, itemCount);
+        CharacterMasterNotificationQueue.SendTransformNotification(this, DLC1Content.Items.ExtraLifeVoid.itemIndex, DLC1Content.Items.ExtraLifeVoidConsumed.itemIndex, CharacterMasterNotificationQueue.TransformationType.Default);
+      }
+      this.CancelInvoke("RespawnExtraLife");
+      this.CancelInvoke("PlayExtraLifeSFX");
+      this.CancelInvoke("RespawnExtraLifeVoid");
+      this.CancelInvoke("PlayExtraLifeVoidSFX");
+      CharacterBody body = this.GetBody();
+      if (!(bool) (UnityEngine.Object) body)
+        return;
+      body.healthComponent.Suicide(killerOverride, inflictorOverride, damageTypeOverride);
+    }
+
+    private void PlayExtraLifeSFX()
+    {
+      GameObject bodyInstanceObject = this.bodyInstanceObject;
+      if (!(bool) (UnityEngine.Object) bodyInstanceObject)
+        return;
+      int num = (int) Util.PlaySound("Play_item_proc_extraLife", bodyInstanceObject);
+    }
+
+    private void PlayExtraLifeVoidSFX()
+    {
+      GameObject bodyInstanceObject = this.bodyInstanceObject;
+      if (!(bool) (UnityEngine.Object) bodyInstanceObject)
+        return;
+      int num = (int) Util.PlaySound("Play_item_void_extraLife", bodyInstanceObject);
+    }
+
+    public void RespawnExtraLife()
+    {
+      this.inventory.GiveItem(RoR2Content.Items.ExtraLifeConsumed);
+      CharacterMasterNotificationQueue.SendTransformNotification(this, RoR2Content.Items.ExtraLife.itemIndex, RoR2Content.Items.ExtraLifeConsumed.itemIndex, CharacterMasterNotificationQueue.TransformationType.Default);
+      Vector3 footPosition = this.deathFootPosition;
+      if (this.killedByUnsafeArea)
+        footPosition = TeleportHelper.FindSafeTeleportDestination(this.deathFootPosition, this.bodyPrefab.GetComponent<CharacterBody>(), RoR2Application.rng) ?? this.deathFootPosition;
+      this.Respawn(footPosition, Quaternion.Euler(0.0f, UnityEngine.Random.Range(0.0f, 360f), 0.0f));
+      this.GetBody().AddTimedBuff(RoR2Content.Buffs.Immune, 3f);
+      GameObject effectPrefab = LegacyResourcesAPI.Load<GameObject>("Prefabs/Effects/HippoRezEffect");
+      if (!(bool) (UnityEngine.Object) this.bodyInstanceObject)
+        return;
+      foreach (EntityStateMachine component in this.bodyInstanceObject.GetComponents<EntityStateMachine>())
+        component.initialStateType = component.mainStateType;
+      if (!(bool) (UnityEngine.Object) effectPrefab)
+        return;
+      EffectManager.SpawnEffect(effectPrefab, new EffectData()
+      {
+        origin = footPosition,
+        rotation = this.bodyInstanceObject.transform.rotation
+      }, true);
+    }
+
+    public void RespawnExtraLifeVoid()
+    {
+      this.inventory.GiveItem(DLC1Content.Items.ExtraLifeVoidConsumed);
+      CharacterMasterNotificationQueue.SendTransformNotification(this, DLC1Content.Items.ExtraLifeVoid.itemIndex, DLC1Content.Items.ExtraLifeVoidConsumed.itemIndex, CharacterMasterNotificationQueue.TransformationType.Default);
+      Vector3 footPosition = this.deathFootPosition;
+      if (this.killedByUnsafeArea)
+        footPosition = TeleportHelper.FindSafeTeleportDestination(this.deathFootPosition, this.bodyPrefab.GetComponent<CharacterBody>(), RoR2Application.rng) ?? this.deathFootPosition;
+      this.Respawn(footPosition, Quaternion.Euler(0.0f, UnityEngine.Random.Range(0.0f, 360f), 0.0f));
+      this.GetBody().AddTimedBuff(RoR2Content.Buffs.Immune, 3f);
+      if ((bool) (UnityEngine.Object) this.bodyInstanceObject)
+      {
+        foreach (EntityStateMachine component in this.bodyInstanceObject.GetComponents<EntityStateMachine>())
+          component.initialStateType = component.mainStateType;
+        if ((bool) (UnityEngine.Object) ExtraLifeVoidManager.rezEffectPrefab)
+          EffectManager.SpawnEffect(ExtraLifeVoidManager.rezEffectPrefab, new EffectData()
+          {
+            origin = footPosition,
+            rotation = this.bodyInstanceObject.transform.rotation
+          }, true);
+      }
+      foreach (ContagiousItemManager.TransformationInfo transformationInfo in ContagiousItemManager.transformationInfos)
+        ContagiousItemManager.TryForceReplacement(this.inventory, transformationInfo.originalItem);
+    }
+
+    public void OnBodyDamaged(DamageReport damageReport)
+    {
+      foreach (BaseAI aiComponent in this.aiComponents)
+        aiComponent.OnBodyDamaged(damageReport);
+    }
+
+    public void OnBodyDestroyed(CharacterBody characterBody)
+    {
+      if (characterBody != this.GetBody())
+        return;
+      if (NetworkServer.active)
+      {
+        foreach (BaseAI aiComponent in this.aiComponents)
+          aiComponent.OnBodyDestroyed(characterBody);
+        this.PauseLifeStopwatch();
+      }
+      Action<CharacterBody> onBodyDestroyed = this.onBodyDestroyed;
+      if (onBodyDestroyed == null)
+        return;
+      onBodyDestroyed(characterBody);
+    }
+
+    private float internalSurvivalTime
+    {
+      get => this._internalSurvivalTime;
+      set
+      {
+        if ((double) value == (double) this._internalSurvivalTime)
+          return;
+        this.SetDirtyBit(4U);
+        this._internalSurvivalTime = value;
+      }
+    }
+
+    public float currentLifeStopwatch
+    {
+      get
+      {
+        if ((double) this.internalSurvivalTime <= 0.0)
+          return -this.internalSurvivalTime;
+        return (bool) (UnityEngine.Object) Run.instance ? Run.instance.GetRunStopwatch() - this.internalSurvivalTime : 0.0f;
+      }
+    }
+
+    [Server]
+    private void StartLifeStopwatch()
+    {
+      if (!NetworkServer.active)
+      {
+        Debug.LogWarning((object) "[Server] function 'System.Void RoR2.CharacterMaster::StartLifeStopwatch()' called on client");
+      }
+      else
+      {
+        if ((double) this.internalSurvivalTime > 0.0)
+          return;
+        this.internalSurvivalTime = Run.instance.GetRunStopwatch() - this.currentLifeStopwatch;
+      }
+    }
+
+    [Server]
+    private void PauseLifeStopwatch()
+    {
+      if (!NetworkServer.active)
+      {
+        Debug.LogWarning((object) "[Server] function 'System.Void RoR2.CharacterMaster::PauseLifeStopwatch()' called on client");
+      }
+      else
+      {
+        if ((double) this.internalSurvivalTime <= 0.0)
+          return;
+        this.internalSurvivalTime = -this.currentLifeStopwatch;
+      }
+    }
+
+    [Server]
+    private void ResetLifeStopwatch()
+    {
+      if (!NetworkServer.active)
+        Debug.LogWarning((object) "[Server] function 'System.Void RoR2.CharacterMaster::ResetLifeStopwatch()' called on client");
+      else
+        this.internalSurvivalTime = 0.0f;
+    }
+
+    [Server]
+    public BodyIndex GetKillerBodyIndex()
+    {
+      if (NetworkServer.active)
+        return this.killerBodyIndex;
+      Debug.LogWarning((object) "[Server] function 'RoR2.BodyIndex RoR2.CharacterMaster::GetKillerBodyIndex()' called on client");
+      return new BodyIndex();
+    }
+
+    [RuntimeInitializeOnLoadMethod]
+    private static void Init()
+    {
+      GlobalEventManager.onCharacterDeathGlobal += (Action<DamageReport>) (damageReport =>
+      {
+        CharacterMaster victimMaster = damageReport.victimMaster;
+        if (!(bool) (UnityEngine.Object) victimMaster)
+          return;
+        victimMaster.killerBodyIndex = BodyCatalog.FindBodyIndex(damageReport.damageInfo.attacker);
+        victimMaster.killedByUnsafeArea = (bool) (UnityEngine.Object) damageReport.damageInfo.inflictor && (bool) (UnityEngine.Object) damageReport.damageInfo.inflictor.GetComponent<MapZone>();
+      });
+      Stage.onServerStageBegin += (Action<Stage>) (stage =>
+      {
+        foreach (CharacterMaster instances in CharacterMaster.instancesList)
+          instances.preventRespawnUntilNextStageServer = false;
+      });
+    }
+
+    [Command]
+    public void CmdRespawn(string bodyName)
+    {
+      if (this.preventRespawnUntilNextStageServer)
+        return;
+      if (!string.IsNullOrEmpty(bodyName))
+      {
+        this.bodyPrefab = BodyCatalog.FindBodyPrefab(bodyName);
+        if (!(bool) (UnityEngine.Object) this.bodyPrefab)
+          Debug.LogError((object) ("CmdRespawn failed to find bodyPrefab for name '" + bodyName + "'."));
+      }
+      if (!(bool) (UnityEngine.Object) Stage.instance)
+        return;
+      Stage.instance.RespawnCharacter(this);
+    }
+
+    [Server]
+    public void TransformBody(string bodyName)
+    {
+      if (!NetworkServer.active)
+        Debug.LogWarning((object) "[Server] function 'System.Void RoR2.CharacterMaster::TransformBody(System.String)' called on client");
+      else if (!string.IsNullOrEmpty(bodyName))
+      {
+        this.bodyPrefab = BodyCatalog.FindBodyPrefab(bodyName);
+        if ((UnityEngine.Object) this.bodyPrefab != (UnityEngine.Object) null)
+        {
+          Transform component1 = this.bodyInstanceObject.GetComponent<Transform>();
+          Vector3 position = component1.position;
+          Quaternion rotation = component1.rotation;
+          this.DestroyBody();
+          CharacterBody component2 = this.bodyPrefab.GetComponent<CharacterBody>();
+          if ((bool) (UnityEngine.Object) component2)
+            this.SpawnBody(this.CalculateSafeGroundPosition(position, component2), rotation);
+          else
+            Debug.LogErrorFormat("Trying to respawn as object {0} who has no Character Body!", (object) this.bodyPrefab);
+        }
+        else
+          Debug.LogError((object) ("Can't TransformBody because there's no prefab for body named '" + bodyName + "'"));
+      }
+      else
+        Debug.LogError((object) "Can't TransformBody with null or empty body name.");
+    }
+
+    [Server]
+    private void OnServerStageBegin(Stage stage)
+    {
+      if (!NetworkServer.active)
+      {
+        Debug.LogWarning((object) "[Server] function 'System.Void RoR2.CharacterMaster::OnServerStageBegin(RoR2.Stage)' called on client");
+      }
+      else
+      {
+        this.TryCloverVoidUpgrades();
+        this.TryRegenerateScrap();
+      }
+    }
+
+    private void TryRegenerateScrap()
+    {
+      int itemCount = this.inventory.GetItemCount(DLC1Content.Items.RegeneratingScrapConsumed);
+      if (itemCount <= 0)
+        return;
+      this.inventory.RemoveItem(DLC1Content.Items.RegeneratingScrapConsumed, itemCount);
+      this.inventory.GiveItem(DLC1Content.Items.RegeneratingScrap, itemCount);
+      CharacterMasterNotificationQueue.SendTransformNotification(this, DLC1Content.Items.RegeneratingScrapConsumed.itemIndex, DLC1Content.Items.RegeneratingScrap.itemIndex, CharacterMasterNotificationQueue.TransformationType.RegeneratingScrapRegen);
+    }
+
+    [Server]
+    private void TryCloverVoidUpgrades()
+    {
+      if (!NetworkServer.active)
+      {
+        Debug.LogWarning((object) "[Server] function 'System.Void RoR2.CharacterMaster::TryCloverVoidUpgrades()' called on client");
+      }
+      else
+      {
+        if (this.cloverVoidRng == null)
+          this.cloverVoidRng = new Xoroshiro128Plus(Run.instance.seed);
+        int itemCount1 = this.inventory.GetItemCount(DLC1Content.Items.CloverVoid);
+        List<PickupIndex> pickupIndexList1 = new List<PickupIndex>((IEnumerable<PickupIndex>) Run.instance.availableTier2DropList);
+        List<PickupIndex> pickupIndexList2 = new List<PickupIndex>((IEnumerable<PickupIndex>) Run.instance.availableTier3DropList);
+        List<ItemIndex> list1 = new List<ItemIndex>((IEnumerable<ItemIndex>) this.inventory.itemAcquisitionOrder);
+        Util.ShuffleList<ItemIndex>(list1, this.cloverVoidRng);
+        int num1 = itemCount1 * 3;
+        int num2 = 0;
+        for (int index = 0; num2 < num1 && index < list1.Count; ++index)
+        {
+          ItemDef startingItemDef = ItemCatalog.GetItemDef(list1[index]);
+          ItemDef itemDef = (ItemDef) null;
+          List<PickupIndex> list2 = (List<PickupIndex>) null;
+          switch (startingItemDef.tier)
+          {
+            case ItemTier.Tier1:
+              list2 = pickupIndexList1;
+              break;
+            case ItemTier.Tier2:
+              list2 = pickupIndexList2;
+              break;
+          }
+          if (list2 != null && list2.Count > 0)
+          {
+            Util.ShuffleList<PickupIndex>(list2, this.cloverVoidRng);
+            list2.Sort(new Comparison<PickupIndex>(CompareTags));
+            itemDef = ItemCatalog.GetItemDef(list2[0].itemIndex);
+          }
+          if ((UnityEngine.Object) itemDef != (UnityEngine.Object) null)
+          {
+            if (this.inventory.GetItemCount(itemDef.itemIndex) == 0)
+              list1.Add(itemDef.itemIndex);
+            ++num2;
+            int itemCount2 = this.inventory.GetItemCount(startingItemDef.itemIndex);
+            this.inventory.RemoveItem(startingItemDef.itemIndex, itemCount2);
+            this.inventory.GiveItem(itemDef.itemIndex, itemCount2);
+            CharacterMasterNotificationQueue.SendTransformNotification(this, startingItemDef.itemIndex, itemDef.itemIndex, CharacterMasterNotificationQueue.TransformationType.CloverVoid);
+          }
+
+          int CompareTags(PickupIndex lhs, PickupIndex rhs)
+          {
+            int num1 = 0;
+            int num2 = 0;
+            ItemDef itemDef1 = ItemCatalog.GetItemDef(lhs.itemIndex);
+            ItemDef itemDef2 = ItemCatalog.GetItemDef(rhs.itemIndex);
+            if (startingItemDef.ContainsTag(ItemTag.Damage))
+            {
+              if (itemDef1.ContainsTag(ItemTag.Damage))
+                num1 = 1;
+              if (itemDef2.ContainsTag(ItemTag.Damage))
+                num2 = 1;
+            }
+            if (startingItemDef.ContainsTag(ItemTag.Healing))
+            {
+              if (itemDef1.ContainsTag(ItemTag.Healing))
+                num1 = 1;
+              if (itemDef2.ContainsTag(ItemTag.Healing))
+                num2 = 1;
+            }
+            if (startingItemDef.ContainsTag(ItemTag.Utility))
+            {
+              if (itemDef1.ContainsTag(ItemTag.Utility))
+                num1 = 1;
+              if (itemDef2.ContainsTag(ItemTag.Utility))
+                num2 = 1;
+            }
+            return num2 - num1;
+          }
+        }
+        if (num2 <= 0)
+          return;
+        GameObject bodyInstanceObject = this.bodyInstanceObject;
+        if (!(bool) (UnityEngine.Object) bodyInstanceObject)
+          return;
+        int num3 = (int) Util.PlaySound("Play_item_proc_extraLife", bodyInstanceObject);
+      }
+    }
+
+    private static GameObject PickRandomSurvivorBodyPrefab(
+      Xoroshiro128Plus rng,
+      NetworkUser networkUser,
+      bool allowHidden)
+    {
+      SurvivorDef[] array = SurvivorCatalog.allSurvivorDefs.Where<SurvivorDef>(new Func<SurvivorDef, bool>(SurvivorIsUnlockedAndAvailable)).ToArray<SurvivorDef>();
+      return rng.NextElementUniform<SurvivorDef>(array).bodyPrefab;
+
+      bool SurvivorIsUnlockedAndAvailable(SurvivorDef survivorDef)
+      {
+        if (!allowHidden && survivorDef.hidden || !survivorDef.CheckRequiredExpansionEnabled(networkUser))
+          return false;
+        UnlockableDef unlockableDef = survivorDef.unlockableDef;
+        return unlockableDef == null || networkUser.unlockables.Contains(unlockableDef);
+      }
+    }
+
+    [Server]
+    public CharacterBody Respawn(Vector3 footPosition, Quaternion rotation)
+    {
+      if (!NetworkServer.active)
+      {
+        Debug.LogWarning((object) "[Server] function 'RoR2.CharacterBody RoR2.CharacterMaster::Respawn(UnityEngine.Vector3,UnityEngine.Quaternion)' called on client");
+        return (CharacterBody) null;
+      }
+      this.DestroyBody();
+      if ((bool) (UnityEngine.Object) this.playerCharacterMasterController && RunArtifactManager.instance.IsArtifactEnabled(RoR2Content.Artifacts.randomSurvivorOnRespawnArtifactDef))
+        this.bodyPrefab = CharacterMaster.PickRandomSurvivorBodyPrefab(Run.instance.randomSurvivorOnRespawnRng, this.playerCharacterMasterController.networkUser, false);
+      if ((bool) (UnityEngine.Object) this.bodyPrefab)
+      {
+        CharacterBody component = this.bodyPrefab.GetComponent<CharacterBody>();
+        if ((bool) (UnityEngine.Object) component)
+        {
+          Vector3 position = footPosition;
+          if (true)
+            position = this.CalculateSafeGroundPosition(footPosition, component);
+          return this.SpawnBody(position, rotation);
+        }
+        Debug.LogErrorFormat("Trying to respawn as object {0} who has no Character Body!", (object) this.bodyPrefab);
+      }
+      else
+        Debug.LogErrorFormat("CharacterMaster.Respawn failed. {0} does not have a valid body prefab assigned.", (object) this.gameObject.name);
+      return (CharacterBody) null;
+    }
+
+    private Vector3 CalculateSafeGroundPosition(Vector3 desiredFootPos, CharacterBody body)
+    {
+      if ((bool) (UnityEngine.Object) body)
+      {
+        Vector3 safeGroundPosition = desiredFootPos;
+        RaycastHit hitInfo = new RaycastHit();
+        Ray ray = new Ray(desiredFootPos + Vector3.up * 2f, Vector3.down);
+        float maxDistance = 4f;
+        if (Physics.SphereCast(ray, body.radius, out hitInfo, maxDistance, (int) LayerIndex.world.mask))
+          safeGroundPosition.y = ray.origin.y - hitInfo.distance;
+        float prefabFootOffset = Util.GetBodyPrefabFootOffset(this.bodyPrefab);
+        safeGroundPosition.y += prefabFootOffset;
+        return safeGroundPosition;
+      }
+      Debug.LogError((object) "Can't calculate safe ground position if the CharacterBody is null");
+      return desiredFootPos;
+    }
+
+    private void SetUpGummyClone()
+    {
+      if (!NetworkServer.active || !(bool) (UnityEngine.Object) this.inventory || this.inventory.GetItemCount(DLC1Content.Items.GummyCloneIdentifier.itemIndex) <= 0)
+        return;
+      if (!(bool) (UnityEngine.Object) this.gameObject.GetComponent<MasterSuicideOnTimer>())
+        this.gameObject.AddComponent<MasterSuicideOnTimer>().lifeTimer = 30f;
+      CharacterBody body = this.GetBody();
+      if (!(bool) (UnityEngine.Object) body)
+        return;
+      CharacterDeathBehavior component = body.GetComponent<CharacterDeathBehavior>();
+      if ((bool) (UnityEngine.Object) component && component.deathState.stateType != typeof (GummyCloneDeathState))
+        component.deathState = new SerializableEntityStateType(typeof (GummyCloneDeathState));
+      body.portraitIcon = LegacyResourcesAPI.Load<Texture>("Textures/BodyIcons/texGummyCloneBody");
+    }
+
+    private void ToggleGod()
+    {
+      this.godMode = !this.godMode;
+      this.UpdateBodyGodMode();
+    }
+
+    private void UpdateBodyGodMode()
+    {
+      if (!(bool) (UnityEngine.Object) this.bodyInstanceObject)
+        return;
+      HealthComponent component = this.bodyInstanceObject.GetComponent<HealthComponent>();
+      if (!(bool) (UnityEngine.Object) component)
+        return;
+      component.godMode = this.godMode;
+    }
+
+    private uint miscFlags
+    {
+      get => this._miscFlags;
+      set
+      {
+        if ((int) value == (int) this._miscFlags)
+          return;
+        this._miscFlags = value;
+        if (!NetworkServer.active)
+          return;
+        this.SetDirtyBit(32U);
+      }
+    }
+
+    public bool lostBodyToDeath
+    {
+      get => (this.miscFlags & this.lostBodyToDeathFlag) > 0U;
+      private set
+      {
+        if (value)
+          this.miscFlags |= this.lostBodyToDeathFlag;
+        else
+          this.miscFlags &= ~this.lostBodyToDeathFlag;
+      }
+    }
+
+    public override bool OnSerialize(NetworkWriter writer, bool initialState)
+    {
+      uint num1 = this.syncVarDirtyBits;
+      if (initialState)
+        num1 = (uint) sbyte.MaxValue;
+      int num2 = (num1 & 1U) > 0U ? 1 : 0;
+      bool flag1 = (num1 & 2U) > 0U;
+      bool flag2 = (num1 & 64U) > 0U;
+      bool flag3 = (num1 & 4U) > 0U;
+      bool flag4 = (num1 & 8U) > 0U;
+      bool flag5 = (num1 & 16U) > 0U;
+      bool flag6 = (num1 & 32U) > 0U;
+      writer.Write((byte) num1);
+      if (num2 != 0)
+        writer.Write(this._bodyInstanceId);
+      if (flag1)
+        writer.WritePackedUInt32(this._money);
+      if (flag2)
+        writer.WritePackedUInt32(this._voidCoins);
+      if (flag3)
+        writer.Write(this._internalSurvivalTime);
+      if (flag4)
+        writer.Write(this.teamIndex);
+      if (flag5)
+        this.loadout.Serialize(writer);
+      if (flag6)
+        writer.WritePackedUInt32(this.miscFlags);
+      return num1 > 0U;
+    }
+
+    public override void OnDeserialize(NetworkReader reader, bool initialState)
+    {
+      int num1 = (int) reader.ReadByte();
+      bool flag1 = (num1 & 1) != 0;
+      bool flag2 = (num1 & 2) != 0;
+      bool flag3 = (num1 & 64) != 0;
+      bool flag4 = (num1 & 4) != 0;
+      bool flag5 = (num1 & 8) != 0;
+      bool flag6 = (num1 & 16) != 0;
+      int num2 = (num1 & 32) != 0 ? 1 : 0;
+      if (flag1)
+        this.OnSyncBodyInstanceId(reader.ReadNetworkId());
+      if (flag2)
+        this._money = reader.ReadPackedUInt32();
+      if (flag3)
+        this._voidCoins = reader.ReadPackedUInt32();
+      if (flag4)
+        this._internalSurvivalTime = reader.ReadSingle();
+      if (flag5)
+        this.teamIndex = reader.ReadTeamIndex();
+      if (flag6)
+        this.loadout.Deserialize(reader);
+      if (num2 == 0)
+        return;
+      this.miscFlags = reader.ReadPackedUInt32();
+    }
+
+    static CharacterMaster()
+    {
+      NetworkBehaviour.RegisterCommandDelegate(typeof (CharacterMaster), CharacterMaster.kCmdCmdRespawn, new NetworkBehaviour.CmdDelegate(CharacterMaster.InvokeCmdCmdRespawn));
+      NetworkCRC.RegisterBehaviour(nameof (CharacterMaster), 0);
+    }
+
+    private void UNetVersion()
+    {
+    }
+
+    protected static void InvokeCmdCmdRespawn(NetworkBehaviour obj, NetworkReader reader)
+    {
+      if (!NetworkServer.active)
+        Debug.LogError((object) "Command CmdRespawn called on client.");
+      else
+        ((CharacterMaster) obj).CmdRespawn(reader.ReadString());
+    }
+
+    public void CallCmdRespawn(string bodyName)
+    {
+      if (!NetworkClient.active)
+        Debug.LogError((object) "Command function CmdRespawn called on server.");
+      else if (this.isServer)
+      {
+        this.CmdRespawn(bodyName);
+      }
+      else
+      {
+        NetworkWriter writer = new NetworkWriter();
+        writer.Write((short) 0);
+        writer.Write((short) 5);
+        writer.WritePackedUInt32((uint) CharacterMaster.kCmdCmdRespawn);
+        writer.Write(this.GetComponent<NetworkIdentity>().netId);
+        writer.Write(bodyName);
+        this.SendCommandInternal(writer, 0, "CmdRespawn");
+      }
+    }
+
+    public override void PreStartClient()
+    {
+    }
+  }
+}
