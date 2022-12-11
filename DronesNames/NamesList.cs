@@ -151,6 +151,7 @@ namespace DronesNames
             { new string[1] { "Turret1Body" }, new Dictionary<string,string>
                 {
                     { "DRONESNAMES_TURRET1BODY", "Turret1Body" },
+                    { "DRONESNAMES_MYBESTFRIEND", "My Best Friend" },
                 }
             },
 
