@@ -58,7 +58,7 @@ namespace DronesNames
 
         }
 
-        public static string GetRandomNameForCharacterMaster(RoR2.CharacterMaster characterMaster)
+        public static string GetRandomNameForCharacterMaster(RoR2.CharacterMaster characterMaster, RoR2.CharacterBody characterBody)
         {
             // Get network ID of character body
             if (characterMaster == null || characterMaster.networkIdentity == null || characterMaster.networkIdentity.netId == null)
@@ -75,7 +75,7 @@ namespace DronesNames
                 return DronesNames.savedTokens[netIdValue];
             }
 
-            var bodyIndex = characterMaster.GetBody().bodyIndex;
+            var bodyIndex = characterBody.bodyIndex;
             var bodyName = RoR2.BodyCatalog.GetBodyName(bodyIndex);
 
             // If it's not in the list of names, skip

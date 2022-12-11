@@ -11,8 +11,7 @@ namespace DronesNames
 {
     [BepInDependency(R2API.R2API.PluginGUID)]
     [BepInPlugin(PluginGUID, PluginName, PluginVersion)]
-    // [R2APISubmoduleDependency(/*nameof(LanguageAPI)*/)]
-
+    [R2APISubmoduleDependency(nameof(LanguageAPI))]
 
     public class DronesNames : BaseUnityPlugin
     {
@@ -25,6 +24,9 @@ namespace DronesNames
 
         public void Awake()
         {
+            // Local Network for testing
+            // On.RoR2.Networking.NetworkManagerSystemSteam.OnClientConnect += (s, u, t) => {};
+
             Log.Init(Logger);
 
             NamesList.BuildNamesByBodyName();
@@ -32,6 +34,11 @@ namespace DronesNames
             AddTokens();
 
             On.RoR2.CharacterBody.Start += CharacterBody_Start;
+        }
+
+        public void OnDestroy()
+        {
+            On.RoR2.CharacterBody.Start -= CharacterBody_Start;
         }
 
         // HOOKS
@@ -47,7 +54,7 @@ namespace DronesNames
         {
             var characterMaster = characterBody.master;
 
-            var newName = NamesList.GetRandomNameForCharacterMaster(characterMaster);
+            var newName = NamesList.GetRandomNameForCharacterMaster(characterMaster, characterBody);
 
             if (newName == "")
             {
