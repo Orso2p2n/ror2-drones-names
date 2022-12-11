@@ -1,9 +1,9 @@
-# My first mod
+# Drones Names
 
-Description.
+Gives silly names to allies, such as Drones, Turrets, Beetle Guards, etc.
 
 ## Changelog
 
 **1.0.0**
 
-* Release of my first mod.
+* Initial release.

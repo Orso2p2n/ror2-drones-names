@@ -16,7 +16,7 @@ namespace DronesNames
     public class DronesNames : BaseUnityPlugin
     {
         public const string PluginGUID = PluginAuthor + "." + PluginName;
-        public const string PluginAuthor = "Orso";
+        public const string PluginAuthor = "Orso_SaltyFinalBoss";
         public const string PluginName = "DronesNames";
         public const string PluginVersion = "1.0.0";
 
