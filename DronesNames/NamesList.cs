@@ -139,6 +139,21 @@ namespace DronesNames
                     { "DRONESNAMES_HEATHER", "Heather" },
                     { "DRONESNAMES_ERIC", "Eric" },
                     { "DRONESNAMES_ELIZABETH", "Elizabeth" },
+                    { "DRONESNAMES_JPEG", ".jpeg" },
+                    { "DRONESNAMES_MICHAEL", "Michael" },
+                    { "DRONESNAMES_MICROWAVE", "Microwave" },
+                    { "DRONESNAMES_NEWFOLDER1", "New Folder (1)" },
+                    { "DRONESNAMES_HOTDOGCOM", "Hotdog.com" },
+                    { "DRONESNAMES_BUDDY", "Buddy" },
+                    { "DRONESNAMES_ANESTHESIA", "Anesthesia" },
+                    { "DRONESNAMES_32BIT", "32-bit" },
+                    { "DRONESNAMES_PNG", ".png" },
+                    { "DRONESNAMES_CHILD2", "Child 2.0" },
+                    { "DRONESNAMES_AMPIE3", "Ampie 3" },
+                    { "DRONESNAMES_BEEP", "Beep" },
+                    { "DRONESNAMES_BOLT", "Bolt" },
+                    { "DRONESNAMES_THEKILLER", "The Killer ^_^" },
+                    { "DRONESNAMES_HI", "1001000 1001001" },                  
                 }
             },
 
@@ -217,13 +232,13 @@ namespace DronesNames
 
             { new string[1] { "RoboBallRedBuddyBody" }, new Dictionary<string,string>
                 {
-                    { "DRONESNAMES_ROBOBALLREDBUDDYBODY", "RoboBallRedBuddyBody" },
+                    { "DRONESNAMES_YESILOVEYOUTOO", "YES I LOVE YOU TOO" },
                 }
             },
 
             { new string[1] { "RoboBallGreenBuddyBody" }, new Dictionary<string,string>
                 {
-                    { "DRONESNAMES_ROBOBALLGREENBUDDYBODY", "RoboBallGreenBuddyBody" },
+                    { "DRONESNAMES_DOYOULOVETHEMTOO", "DO YOU LOVE THEM TOO" },
                 }
             },
 
