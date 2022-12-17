@@ -32,9 +32,9 @@ namespace DronesNames
             { new NamesByBodyNames("FlameDroneBody",              new string[1] { "DefaultDrones" }     ) },
             { new NamesByBodyNames("MissileDroneBody",            new string[1] { "DefaultDrones" }     ) },
             { new NamesByBodyNames("EquipmentDroneBody",          new string[1] { "DefaultDrones" }     ) },
+            { new NamesByBodyNames("BackupDroneBody",             new string[1] { "DefaultDrones" }     ) },
             { new NamesByBodyNames("MegaDroneBody",               new string[0] {}                      ) },
             { new NamesByBodyNames("DroneCommanderBody",          new string[0] {}                      ) },
-            { new NamesByBodyNames("BackupDroneBody",             new string[1] { "DefaultDrones" }     ) },
             { new NamesByBodyNames("BeetleGuardAllyBody",         new string[0] {}                      ) },
             { new NamesByBodyNames("SquidTurretBody",             new string[0] {}                      ) },
             { new NamesByBodyNames("RoboBallRedBuddyBody",        new string[0] {}                      ) },
@@ -85,12 +85,29 @@ namespace DronesNames
             // If already saved in the tokens list, just return that
             if (DronesNames.savedTokens.ContainsKey(netIdValue))
             {
-                Log.LogDebug("Found token " + DronesNames.savedTokens[netIdValue] + " at ID " + netIdValue);
+                if (DronesNames.LogDebug) Log.LogDebug("Found token " + DronesNames.savedTokens[netIdValue] + " at ID " + netIdValue);
+                
                 return DronesNames.savedTokens[netIdValue];
             }
 
             var bodyIndex = characterBody.bodyIndex;
             var bodyName = RoR2.BodyCatalog.GetBodyName(bodyIndex);
+            var forcedIndex = -1;
+
+            // SPECIAL CASE for Empathy Cores, where both Empathy Cores have linked names
+            var storeEmpathyCoreIndex = false;
+            if (bodyName == "RoboBallRedBuddyBody" || bodyName == "RoboBallGreenBuddyBody") 
+            {
+                var empathyCoresSyncedIndex = CheckForEmpathyCoresSync(characterMaster, bodyName);
+                if (empathyCoresSyncedIndex != -1)
+                {
+                    forcedIndex = empathyCoresSyncedIndex;
+                }
+                else
+                {
+                    storeEmpathyCoreIndex = true;
+                }
+            }
 
             // If it's not in the list of names, skip
             var namesDictionary = new Dictionary<string, string>();
@@ -105,28 +122,57 @@ namespace DronesNames
                 }
             }
 
-            if (!foundDictionary)
-            {
-                return "";
-            }
+            if (!foundDictionary) return "";
 
             // Get the names dictionary <token,name>. If it's empty, skip
-            if (namesDictionary.Count == 0)
-            {
-                return "";
-            }
+            if (namesDictionary.Count == 0) return "";
 
             // Set seed of rng and draw a token
             rng.ResetSeed(netIdValue);
-            var randomIndex = rng.RangeInt(0, namesDictionary.Count);
+            var randomIndex = forcedIndex != -1 ? forcedIndex : rng.RangeInt(0, namesDictionary.Count);
             string randomToken = namesDictionary.ElementAt(randomIndex).Key;
 
-            Log.LogDebug("RNG seed is " + netIdValue + ", returning token " + randomToken + " at index " + randomIndex);
+            if (DronesNames.LogDebug)
+            {
+                if (forcedIndex == -1) 
+                {
+                    Log.LogDebug("Spawning " + bodyName + ", RNG seed is " + netIdValue + ", random index is " + randomIndex + ", returning token " + randomToken);
+                }
+                else
+                {
+                    Log.LogDebug("Spawning " + bodyName + ", forced index is " + forcedIndex + ", returning token " + randomToken);
+                }
+            }
 
             // Add to the saved tokens
             DronesNames.savedTokens.Add(netIdValue, randomToken);
 
+            // Store for empathy cores sync
+            if (storeEmpathyCoreIndex)
+            {
+                #pragma warning disable Publicizer001
+                DronesNames.empathyCoresNameIndexes.Add(characterMaster.minionOwnership.ownerMasterId, randomIndex);
+                #pragma warning restore Publicizer001
+            }
+
             return randomToken;
+        }
+
+        private static int CheckForEmpathyCoresSync(RoR2.CharacterMaster characterMaster, string bodyName)
+        {
+
+            var empathyCoresSyncedToken = -1;
+
+            #pragma warning disable Publicizer001
+            var ownerId = characterMaster.minionOwnership.ownerMasterId;
+            #pragma warning restore Publicizer001
+
+            if (DronesNames.empathyCoresNameIndexes.ContainsKey(ownerId))
+            {
+                empathyCoresSyncedToken = DronesNames.empathyCoresNameIndexes[ownerId];
+            }
+            
+            return empathyCoresSyncedToken;
         }
 
 

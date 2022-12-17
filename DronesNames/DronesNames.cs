@@ -5,6 +5,7 @@ using R2API;
 using R2API.Utils;
 using RoR2;
 using UnityEngine;
+using UnityEngine.Networking;
 using UnityEngine.AddressableAssets;
 
 namespace DronesNames
@@ -20,12 +21,16 @@ namespace DronesNames
         public const string PluginName = "DronesNames";
         public const string PluginVersion = "1.0.0";
 
+        public const bool LogDebug = true;
+
         public static Dictionary<uint,string> savedTokens = new Dictionary<uint,string>();
+
+        public static Dictionary<NetworkInstanceId,int> empathyCoresNameIndexes = new Dictionary<NetworkInstanceId,int>();
 
         public void Awake()
         {
             // Local Network for testing
-            // On.RoR2.Networking.NetworkManagerSystemSteam.OnClientConnect += (s, u, t) => {};
+            On.RoR2.Networking.NetworkManagerSystemSteam.OnClientConnect += (s, u, t) => {};
 
             Log.Init(Logger);
 
@@ -34,11 +39,13 @@ namespace DronesNames
             AddTokens();
 
             On.RoR2.CharacterBody.Start += CharacterBody_Start;
+            On.RoR2.CharacterMaster.OnBodyDeath += CharacterMaster_OnBodyDeath;
         }
 
         public void OnDestroy()
         {
             On.RoR2.CharacterBody.Start -= CharacterBody_Start;
+            On.RoR2.CharacterMaster.OnBodyDeath -= CharacterMaster_OnBodyDeath;
         }
 
         // HOOKS
@@ -49,6 +56,19 @@ namespace DronesNames
             OnCharacterBodySpawned(self);
         }
 
+        private void CharacterMaster_OnBodyDeath(On.RoR2.CharacterMaster.orig_OnBodyDeath orig, RoR2.CharacterMaster self, CharacterBody body)
+        {
+            // Check if body that died is an empathy core
+            var bodyIndex = body.bodyIndex;
+            var redBodyIndex = RoR2.BodyCatalog.FindBodyIndex("RoboBallRedBuddyBody");
+            var greenBodyIndex = RoR2.BodyCatalog.FindBodyIndex("RoboBallGreenBuddyBody");
+            if (bodyIndex == redBodyIndex || bodyIndex == greenBodyIndex) {
+                OnEmpathyCoreDeath(redBodyIndex, greenBodyIndex, self);
+            }
+
+            orig(self, body);
+        }
+
         // FUNCTIONS
         private void OnCharacterBodySpawned(CharacterBody characterBody)
         {
@@ -56,21 +76,9 @@ namespace DronesNames
 
             var newName = NamesList.GetRandomNameForCharacterMaster(characterMaster, characterBody);
 
-            if (newName == "")
-            {
-                return;
-            }
+            if (newName == "") return;
 
             characterBody.baseNameToken = newName;
-
-            #pragma warning disable Publicizer001
-
-            var bodyName = BodyCatalog.GetBodyName(BodyCatalog.FindBodyIndex(characterBody));
-            var displayName = characterBody.GetDisplayName();
-            var netId = characterMaster.networkIdentity.netId.Value;
-            Log.LogDebug("SPAWN " + bodyName + " " + displayName + " " + netId);
-
-            #pragma warning restore Publicizer001
         }
 
         private void AddTokens()
@@ -83,6 +91,52 @@ namespace DronesNames
                     LanguageAPI.Add(token, name);
                 }
             }
+        }
+
+        private void OnEmpathyCoreDeath(BodyIndex redBodyIndex, BodyIndex greenBodyIndex, CharacterMaster characterMaster)
+        {
+            #pragma warning disable Publicizer001
+
+            // Get minion information
+            var minionOwnership = characterMaster.minionOwnership;
+            if (minionOwnership == null) return;
+
+            var minionGroup = characterMaster.minionOwnership.group;
+            var minionOwnerId = characterMaster.minionOwnership.ownerMasterId;
+            if (minionGroup == null || minionOwnerId == null) return;
+
+            var foundEmpathyCoreInMinions = false;
+            // Look for all the minions in the same group
+            foreach (var member in minionGroup._members) 
+            {
+                // Skip null members
+                if (member == null) continue;
+
+                // Skip members without a CharacterMaster (shouldn't happen, just in case)
+                var memberCharacterMaster = member.GetComponent<CharacterMaster>();
+                if (memberCharacterMaster == null) continue;
+
+                // Skip member if is the same as the one that died
+                if (memberCharacterMaster.networkIdentity == characterMaster.networkIdentity) continue;
+
+                // Skip members without a CharacterBody
+                var memberCharacterBody = memberCharacterMaster.GetBody();
+                if (memberCharacterBody == null) continue;
+
+                // If one of the minions is an Empathy Core, don't remove the token from the dictionary
+                if (memberCharacterBody.bodyIndex == redBodyIndex || memberCharacterBody.bodyIndex == greenBodyIndex)
+                {
+                    foundEmpathyCoreInMinions = true;
+                    break;
+                }
+            }
+
+            if (!foundEmpathyCoreInMinions)
+            {
+                empathyCoresNameIndexes.Remove(minionOwnerId);
+            }
+
+            #pragma warning restore Publicizer001
         }
     }
 }
