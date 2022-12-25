@@ -33,6 +33,8 @@ namespace DronesNames
             { new NamesByBodyNames("MissileDroneBody",            new string[1] { "DefaultDrones" }     ) },
             { new NamesByBodyNames("EquipmentDroneBody",          new string[1] { "DefaultDrones" }     ) },
             { new NamesByBodyNames("BackupDroneBody",             new string[1] { "DefaultDrones" }     ) },
+            { new NamesByBodyNames("EngiTurretBody",              new string[1] { "DefaultDrones" }     ) },
+            { new NamesByBodyNames("EngiWalkerTurretBody",        new string[1] { "DefaultDrones" }     ) },
             { new NamesByBodyNames("MegaDroneBody",               new string[0] {}                      ) },
             { new NamesByBodyNames("DroneCommanderBody",          new string[0] {}                      ) },
             { new NamesByBodyNames("BeetleGuardAllyBody",         new string[0] {}                      ) },
