@@ -7,6 +7,7 @@ using RoR2;
 using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.AddressableAssets;
+using BepInEx.Configuration;
 
 namespace DronesNames
 {
@@ -22,17 +23,24 @@ namespace DronesNames
         public const string PluginVersion = "1.0.0";
 
         public const bool LogDebug = true;
+        public static DronesNames instance;
 
         public static Dictionary<uint,string> savedTokens = new Dictionary<uint,string>();
 
         public static Dictionary<NetworkInstanceId,int> empathyCoresNameIndexes = new Dictionary<NetworkInstanceId,int>();
 
+        private static ConfigFile namesConfigFile { get; set; }
+
         public void Awake()
         {
             // Local Network for testing
-            On.RoR2.Networking.NetworkManagerSystemSteam.OnClientConnect += (s, u, t) => {};
+            // On.RoR2.Networking.NetworkManagerSystemSteam.OnClientConnect += (s, u, t) => {};
+            
+            instance = this;
 
             Log.Init(Logger);
+
+            InitConfig();
 
             NamesList.BuildNamesByBodyName();
 
@@ -69,7 +77,7 @@ namespace DronesNames
             orig(self, body);
         }
 
-        // FUNCTIONS
+        // GAMEPLAY FUNCTIONS
         private void OnCharacterBodySpawned(CharacterBody characterBody)
         {
             var characterMaster = characterBody.master;
@@ -81,14 +89,25 @@ namespace DronesNames
             characterBody.baseNameToken = newName;
         }
 
+        List<string> addedTokens;
         private void AddTokens()
         {
-            foreach (var nameList in NamesList.names.Values)
+            addedTokens = new List<string>();
+            foreach (var namesByBodyIndex in NamesList.namesByBodyIndexes)
             {
-                foreach (var token in nameList.Keys)
+                foreach (var token in namesByBodyIndex.names.Keys)
                 {
-                    var name = nameList[token];
+                    if (addedTokens.Contains(token))
+                    {
+                        continue;
+                    }
+
+                    var name = namesByBodyIndex.names[token];
                     LanguageAPI.Add(token, name);
+
+                    addedTokens.Add(token);
+
+                    Log.LogDebug(token + " " + name);
                 }
             }
         }
@@ -137,6 +156,14 @@ namespace DronesNames
             }
 
             #pragma warning restore Publicizer001
+        }
+
+        // META FUNCTIONS
+        private void InitConfig()
+        {
+            namesConfigFile = new ConfigFile(Paths.ConfigPath + "\\DronesNames.cfg", true);
+            
+            NamesList.InitConfig();
         }
     }
 }
