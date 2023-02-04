@@ -143,33 +143,6 @@ namespace DronesNames
                 var namesByBodyIndex = new NamesByBodyIndex(bodyIndex, categoriesArray, namesDictionary);
                 namesByBodyIndexes.Add(namesByBodyIndex);
             }
-
-            // Combine the two
-            // foreach (var namesByBodyIndex in namesByBodyIndexes)
-            // {
-            //     foreach (var possibleIndexes in names.Keys)
-            //     {
-            //         var addNames = false;
-                    
-            //         foreach (var possibleIndex in possibleIndexes)
-            //         {                        
-            //             if (namesByBodyIndex.bodyIndex == possibleIndex || namesByBodyIndex.additionalCategories.Contains(possibleIndex))
-            //             {
-            //                 addNames = true;
-            //                 break;
-            //             }
-            //         }
-
-            //         // Concat namesByBodyIndex with names
-            //         if (addNames)
-            //         {
-            //             foreach (var name in names[possibleIndexes])
-            //             {
-            //                 namesByBodyIndex.names.Add(name.Key, name.Value);
-            //             }
-            //         }
-            //     }
-            // }
         }
 
         public static string TurnNameIntoToken(string name)
@@ -233,11 +206,11 @@ namespace DronesNames
             var foundDictionary = false;
             foreach (var namesByBodyIndex in namesByBodyIndexes)
             {
-                Log.LogDebug(namesByBodyIndex.bodyIndex);
+                // Log.LogDebug(namesByBodyIndex.bodyIndex);
 
                 if (namesByBodyIndex.bodyIndex == bodyName)
                 {
-                    Log.LogDebug("FOUND!!!");
+                    // Log.LogDebug("FOUND!!!");
 
                     namesDictionary = namesByBodyIndex.names;
                     foundDictionary = true;
@@ -306,6 +279,7 @@ namespace DronesNames
             {
                 new ConfigCategory( "Default", "Christopher,Jessica,Matthew,Ashley,Jennifer,Joshua,Amanda,Daniel,David,James,Robert,John,Joseph,Andrew,Ryan,Brandon,Jason,Justin,Sarah,William,Jonathan,Stephanie,Brian,Nicole,Nicholas,Anthony,Heather,Eric,Elizabeth" ),
                 new ConfigCategory( "Drones",  ".jpeg,Michael,Microwave,New Folder (1),Hotdog.com,Buddy,Anesthesia,32-bit,.png,Child 2.0,Ampie 3,Beep,Bolt,The Killer ^_^,1001000 1001001" ),
+                new ConfigCategory( "Void",  "Void Guy" ),
                 new ConfigCategory( "CustomCategory1", "" ),
                 new ConfigCategory( "CustomCategory2", "" ),
                 new ConfigCategory( "CustomCategory3", "" ),
@@ -323,146 +297,20 @@ namespace DronesNames
                 new ConfigBodyIndex( "FlameDrone",            "Incinerator Drone",        "Default,Drones" ,        "" ),
                 new ConfigBodyIndex( "EmergencyDrone",        "Emergency Drone",          "Default,Drones" ,        "" ),
                 new ConfigBodyIndex( "BackupDrone",           "Back-Up Strike Drone",     "Default,Drones" ,        "" ),
-                new ConfigBodyIndex( "EngiTurret",            "Engineer Turret",          "Default,Drones" ,        "" ),
-                new ConfigBodyIndex( "EngiWalkerTurret",      "Engineer Mobile Turret",   "Default,Drones" ,        "" ),
+                new ConfigBodyIndex( "EngiTurret",            "Engineer Turret",          "Default,Drones" ,        "pew pew,*shoots you*" ),
+                new ConfigBodyIndex( "EngiWalkerTurret",      "Engineer Mobile Turret",   "Default,Drones" ,        "woooshhhphewww,*lasers you*" ),
                 new ConfigBodyIndex( "MegaDrone",             "TC-280 Prototype",         "Default" ,               "DESTRUCTION,APOCALYPSE,ARMAGEDDON,BAD INVESTMENT" ),
                 new ConfigBodyIndex( "DroneCommander",        "Col. Droneman",            "Default" ,               "Col. Beep Boop" ),
                 new ConfigBodyIndex( "BeetleGuardAlly",       "Beetle Guard",             "Default" ,               "Sir Dies-A-Lot" ),
-                new ConfigBodyIndex( "SquidTurret",           "Squid Polyp",              "Default" ,               "Agent 3,Agent 4,Splatoon,Free Scrap" ),
+                new ConfigBodyIndex( "SquidTurret",           "Squid Polyp",              "Default" ,               "Agent 3,Agent 4,Free Scrap,Scrap Me" ),
                 new ConfigBodyIndex( "RoboBallRedBuddy",      "Quiet Probe",              "Default" ,               "DO YOU LOVE THEM TOO,RED AND LONELY,COLD" ),
                 new ConfigBodyIndex( "RoboBallGreenBuddy",    "Delighted Probe",          "Default" ,               "YES I LOVE YOU TOO,GREEN AND LONELY,BOLD" ),
                 new ConfigBodyIndex( "MinorConstructOnKill",  "Alpha Construct",          "Default" ,               "Triangle" ),
+                new ConfigBodyIndex( "TitanGold",             "Aurelionite",              "Default" ,               "Big Boy,The Guardian" ),
+                new ConfigBodyIndex( "NullifierAlly",         "Void Reaver",              "Default,Void" ,          "the crap" ),
+                new ConfigBodyIndex( "VoidJailerAlly",        "Void Jailer",              "Default,Void" ,          "the lober" ),
+                new ConfigBodyIndex( "VoidMegaCrabAlly",      "Void Devastator",          "Default,Void" ,          "the cooler crap" ),
             };
-        }
-        
-        // public static Dictionary<string[],Dictionary<string,string>> names = new Dictionary<string[], Dictionary<string, string>>
-        // {
-        //     { new string[1] { "DefaultDrones" }, new Dictionary<string,string>
-        //         {
-        //             { "DRONESNAMES_JPEG", ".jpeg" },
-        //             { "DRONESNAMES_MICHAEL", "Michael" },
-        //             { "DRONESNAMES_MICROWAVE", "Microwave" },
-        //             { "DRONESNAMES_NEWFOLDER1", "New Folder (1)" },
-        //             { "DRONESNAMES_HOTDOGCOM", "Hotdog.com" },
-        //             { "DRONESNAMES_BUDDY", "Buddy" },
-        //             { "DRONESNAMES_ANESTHESIA", "Anesthesia" },
-        //             { "DRONESNAMES_32BIT", "32-bit" },
-        //             { "DRONESNAMES_PNG", ".png" },
-        //             { "DRONESNAMES_CHILD2", "Child 2.0" },
-        //             { "DRONESNAMES_AMPIE3", "Ampie 3" },
-        //             { "DRONESNAMES_BEEP", "Beep" },
-        //             { "DRONESNAMES_BOLT", "Bolt" },
-        //             { "DRONESNAMES_THEKILLER", "The Killer ^_^" },
-        //             { "DRONESNAMES_HI", "1001000 1001001" },                  
-        //         }
-        //     },
-
-        //     { new string[1] { "EmergencyDroneBody" }, new Dictionary<string,string>
-        //         {
-                    
-        //         }
-        //     },
-
-        //     { new string[1] { "Turret1Body" }, new Dictionary<string,string>
-        //         {
-        //             { "DRONESNAMES_USELESS", "Useless" },
-        //             { "DRONESNAMES_FLIGHTLESSDRONE", "Flightless Drone" },
-        //         }
-        //     },
-
-        //     { new string[1] { "Drone1Body" }, new Dictionary<string,string>
-        //         {
-
-        //         }
-        //     },
-
-        //     { new string[1] { "Drone2Body" }, new Dictionary<string,string>
-        //         {
-
-        //         }
-        //     },
-
-        //     { new string[1] { "FlameDroneBody" }, new Dictionary<string,string>
-        //         {
-
-        //         }
-        //     },
-
-        //     { new string[1] { "MissileDroneBody" }, new Dictionary<string,string>
-        //         {
-
-        //         }
-        //     },
-
-        //     { new string[1] { "EquipmentDroneBody" }, new Dictionary<string,string>
-        //         {
-
-        //         }
-        //     },
-
-        //     { new string[1] { "MegaDroneBody" }, new Dictionary<string,string>
-        //         {
-        //             { "DRONESNAMES_DESTRUCTION", "DESTRUCTION" },
-        //             { "DRONESNAMES_APOCALYPSE", "APOCALYPSE" },
-        //             { "DRONESNAMES_ARMAGEDDON", "ARMAGEDDON" },
-        //             { "DRONESNAMES_BADINVESTMENT", "BAD INVESTMENT" },
-        //         }
-        //     },
-
-        //     { new string[1] { "DroneCommanderBody" }, new Dictionary<string,string>
-        //         {
-        //             { "DRONESNAMES_COLONELBEEPBOOP", "Colonel Beep Boop" },
-        //         }
-        //     },
-
-        //     { new string[1] { "BackupDroneBody" }, new Dictionary<string,string>
-        //         {
-
-        //         }
-        //     },
-
-        //     { new string[1] { "BeetleGuardAllyBody" }, new Dictionary<string,string>
-        //         {
-        //             { "DRONESNAMES_SIRDIESALOT", "Sir Dies-A-Lot" },
-        //         }
-        //     },
-
-        //     { new string[1] { "SquidTurretBody" }, new Dictionary<string,string>
-        //         {
-        //             { "DRONESNAMES_PEARL", "Pearl" },
-        //             { "DRONESNAMES_MARINA", "Marina" },
-        //             { "DRONESNAMES_FRYE", "Frye" },
-        //             { "DRONESNAMES_SHIVER", "Shiver" },
-        //             { "DRONESNAMES_AGENT3", "Agent 3" },
-        //             { "DRONESNAMES_AGENT4", "Agent 4" },
-        //             { "DRONESNAMES_CALLIE", "Callie" },
-        //             { "DRONESNAMES_MARIE", "Marie" },
-        //             { "DRONESNAMES_FREESCRAP", "Free Scrap" },
-        //         }
-        //     },
-
-        //     { new string[1] { "RoboBallRedBuddyBody" }, new Dictionary<string,string>
-        //         {
-        //             { "DRONESNAMES_DOYOULOVETHEMTOO", "DO YOU LOVE THEM TOO" },
-        //             { "DRONESNAMES_REDANDLONELY", "RED AND LONELY" },
-        //             { "DRONESNAMES_COLD", "COLD" },
-        //         }
-        //     },
-
-        //     { new string[1] { "RoboBallGreenBuddyBody" }, new Dictionary<string,string>
-        //         {
-        //             { "DRONESNAMES_YESILOVEYOUTOO", "YES I LOVE YOU TOO" },
-        //             { "DRONESNAMES_GREENANDLONELY", "GREEN AND LONELY" },
-        //             { "DRONESNAMES_BOLD", "BOLD" },
-        //         }
-        //     },
-
-        //     { new string[1] { "MinorConstructOnKillBody" }, new Dictionary<string,string>
-        //         {
-        //             { "DRONESNAMES_TRIANGLE", "Triangle" },
-        //         }
-        //     },
-        // };
-    
+        }    
     }
 }
