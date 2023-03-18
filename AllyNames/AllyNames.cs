@@ -21,7 +21,7 @@ namespace AllyNames
         public const string PluginGUID = PluginAuthor + "." + PluginName;
         public const string PluginAuthor = "SwagWizards";
         public const string PluginName = "AllyNames";
-        public const string PluginVersion = "1.0.0";
+        public const string PluginVersion = "1.0.1";
 
         public const bool LogDebug = false;
         public static AllyNames instance;

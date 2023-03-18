@@ -1,6 +1,6 @@
 ﻿{
 	"name": "AllyNames",
-	"version_number": "1.0.0",
+	"version_number": "1.0.1",
 	"website_url": "",
 	"description": "Gives silly names to allies, such as Drones, Turrets, Beetle Guards, etc.",
 	"dependencies": [
