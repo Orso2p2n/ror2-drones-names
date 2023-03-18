@@ -294,7 +294,7 @@ namespace DronesNames
                 new ConfigBodyIndex( "Drone2",                "Healing Drone",            "Default,Drones" ,        ":3" ),
                 new ConfigBodyIndex( "MissileDrone",          "Missiles Drone",           "Default,Drones" ,        "" ),
                 new ConfigBodyIndex( "EquipmentDrone",        "Equipment Drone",          "Default,Drones" ,        "Fart" ),
-                new ConfigBodyIndex( "FlameDrone",            "Incinerator Drone",        "Default,Drones" ,        "I'M KILLING YOU, I'M KILLING YOU!, MY PROGRAMMING IS JUST 'GET THAT FUCKING GUY RIGHT NOW" ),
+                new ConfigBodyIndex( "FlameDrone",            "Incinerator Drone",        "Default,Drones" ,        "I'M KILLING YOU,I'M KILLING YOU!,MY PROGRAMMING IS JUST 'GET THAT FUCKING GUY RIGHT NOW" ),
                 new ConfigBodyIndex( "EmergencyDrone",        "Emergency Drone",          "Default,Drones" ,        "" ),
                 new ConfigBodyIndex( "BackupDrone",           "Back-Up Strike Drone",     "Default,Drones" ,        "" ),
                 new ConfigBodyIndex( "EngiTurret",            "Engineer Turret",          "Default,Drones" ,        "pew pew,*shoots you*" ),
