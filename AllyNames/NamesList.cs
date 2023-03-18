@@ -159,7 +159,7 @@ namespace AllyNames
 
             var uppercaseName = simplifiedName.ToUpper();
 
-            var token = "DRONESNAMES_" + uppercaseName;
+            var token = "ALLYNAMES_" + uppercaseName;
 
             return token;
         }
@@ -277,7 +277,7 @@ namespace AllyNames
         {
             configCategories = new ConfigCategory[]
             {
-                new ConfigCategory( "Default", "Christopher,Jessica,Matthew,Ashley,Jennifer,Joshua,Amanda,Daniel,David,James,Robert,John,Joseph,Andrew,Ryan,Brandon,Jason,Justin,Sarah,William,Jonathan,Stephanie,Brian,Nicole,Nicholas,Anthony,Heather,Eric,Elizabeth,Duncan,Paul,Jeffrey,Ben,Javid,Nick,Steve,Gabriel,Jaime,Sean,Steven,Alejandro,Devon,Hugh,Rick,Reza,Mansoor,Hariz,Orso,Aleks,Jean-luc" ),
+                new ConfigCategory( "Default", "Christopher,Joseph,Andrew,Ryan,Brandon,Jason,Justin,Sarah,William,Jonathan,Stephanie,Brian,Nicole,Anthony,Heather,Elizabeth,Duncan,Paul,Jeffrey,Ben,Javid,Nick,Steve,Gabriel,Jaime,Sean,Steven,Alejandro,Devon,Hugh,Rick,Reza,Mansoor,Hariz,Orso,Aleks,Jean-luc" ),
                 new ConfigCategory( "Drones",  ".jpeg,Michael,Microwave,New Folder (1),Hotdog.com,Buddy,32-bit,.png,Child 2.0,Ampie 3,Beep,Bolt,The Killer ^_^,1001000 1001001,V1,V2,Bee,Beep jr.,Updog,Foo,Bar,Hello World,Null,Access violation,Nova,Bigweld,Robots (2005),Q5U4EX7YY2E9N,Java,she risk on my of til i rain 2,Dronathan,Zip bomb,Killshare,notavirus.exe" ),
                 new ConfigCategory( "Void",  "Void Guy" ),
                 new ConfigCategory( "CustomCategory1", "" ),

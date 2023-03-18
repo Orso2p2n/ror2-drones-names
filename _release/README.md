@@ -15,15 +15,15 @@ Mod comes with default lists of names, but everything is 100% customizable in th
 
 ## Credits
 
-<details><summary>SaltyFinalBoss - <em>Original Idea, Names, Icon</em></summary>
-
-- <a href="https://twitter.com/saltyfinalboss">Twitter</a>, <a href="https://www.patreon.com/saltyfinalboss/">Patreon</a> 
-
-</details>
-
 <details><summary>Orso - <em>Names, Programming</em></summary>
 
 - <a href="https://twitter.com/Orsopidou">Twitter</a>
+
+</details>
+
+<details><summary>SaltyFinalBoss - <em>Original Idea, Names, Icon</em></summary>
+
+- <a href="https://twitter.com/saltyfinalboss">Twitter</a>, <a href="https://www.patreon.com/saltyfinalboss/">Patreon</a> 
 
 </details>
 

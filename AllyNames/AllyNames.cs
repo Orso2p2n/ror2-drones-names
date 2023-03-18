@@ -23,7 +23,7 @@ namespace AllyNames
         public const string PluginName = "AllyNames";
         public const string PluginVersion = "1.0.0";
 
-        public const bool LogDebug = true;
+        public const bool LogDebug = false;
         public static AllyNames instance;
 
         public static Dictionary<uint,string> savedTokens = new Dictionary<uint,string>();
@@ -108,7 +108,10 @@ namespace AllyNames
 
                     addedTokens.Add(token);
 
-                    Log.LogDebug(token + " " + name);
+                    if (AllyNames.LogDebug)
+                    {
+                        Log.LogDebug(token + " " + name);
+                    }
                 }
             }
         }
