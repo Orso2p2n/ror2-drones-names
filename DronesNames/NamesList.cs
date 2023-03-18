@@ -277,8 +277,8 @@ namespace DronesNames
         {
             configCategories = new ConfigCategory[]
             {
-                new ConfigCategory( "Default", "Christopher,Jessica,Matthew,Ashley,Jennifer,Joshua,Amanda,Daniel,David,James,Robert,John,Joseph,Andrew,Ryan,Brandon,Jason,Justin,Sarah,William,Jonathan,Stephanie,Brian,Nicole,Nicholas,Anthony,Heather,Eric,Elizabeth" ),
-                new ConfigCategory( "Drones",  ".jpeg,Michael,Microwave,New Folder (1),Hotdog.com,Buddy,Anesthesia,32-bit,.png,Child 2.0,Ampie 3,Beep,Bolt,The Killer ^_^,1001000 1001001" ),
+                new ConfigCategory( "Default", "Christopher,Jessica,Matthew,Ashley,Jennifer,Joshua,Amanda,Daniel,David,James,Robert,John,Joseph,Andrew,Ryan,Brandon,Jason,Justin,Sarah,William,Jonathan,Stephanie,Brian,Nicole,Nicholas,Anthony,Heather,Eric,Elizabeth,Duncan,Paul,Jeffrey,Ben,Javid,Nick,Steve,Gabriel,Jaime,Sean,Steven,Alejandro,Devon,Hugh,Rick,Reza,Mansoor,Hariz,Orso,Aleks,Jean-luc" ),
+                new ConfigCategory( "Drones",  ".jpeg,Michael,Microwave,New Folder (1),Hotdog.com,Buddy,32-bit,.png,Child 2.0,Ampie 3,Beep,Bolt,The Killer ^_^,1001000 1001001,V1,V2,Bee,Beep jr.,Updog,Foo,Bar,Hello World,Null,Access violation,Nova,Bigweld,Robots (2005),Q5U4EX7YY2E9N,Java,she risk on my of til i rain 2,Dronathan,Zip bomb,Killshare,notavirus.exe" ),
                 new ConfigCategory( "Void",  "Void Guy" ),
                 new ConfigCategory( "CustomCategory1", "" ),
                 new ConfigCategory( "CustomCategory2", "" ),
@@ -291,15 +291,15 @@ namespace DronesNames
             {
                 new ConfigBodyIndex( "Turret1",               "Gunner Turret",            "Default,Drones" ,        "Useless,Flightless Drone" ),
                 new ConfigBodyIndex( "Drone1",                "Gunner Drone",             "Default,Drones" ,        "" ),
-                new ConfigBodyIndex( "Drone2",                "Healing Drone",            "Default,Drones" ,        "" ),
+                new ConfigBodyIndex( "Drone2",                "Healing Drone",            "Default,Drones" ,        ":3" ),
                 new ConfigBodyIndex( "MissileDrone",          "Missiles Drone",           "Default,Drones" ,        "" ),
-                new ConfigBodyIndex( "EquipmentDrone",        "Equipment Drone",          "Default,Drones" ,        "" ),
-                new ConfigBodyIndex( "FlameDrone",            "Incinerator Drone",        "Default,Drones" ,        "" ),
+                new ConfigBodyIndex( "EquipmentDrone",        "Equipment Drone",          "Default,Drones" ,        "Fart" ),
+                new ConfigBodyIndex( "FlameDrone",            "Incinerator Drone",        "Default,Drones" ,        "I'M KILLING YOU, I'M KILLING YOU!, MY PROGRAMMING IS JUST 'GET THAT FUCKING GUY RIGHT NOW" ),
                 new ConfigBodyIndex( "EmergencyDrone",        "Emergency Drone",          "Default,Drones" ,        "" ),
                 new ConfigBodyIndex( "BackupDrone",           "Back-Up Strike Drone",     "Default,Drones" ,        "" ),
                 new ConfigBodyIndex( "EngiTurret",            "Engineer Turret",          "Default,Drones" ,        "pew pew,*shoots you*" ),
                 new ConfigBodyIndex( "EngiWalkerTurret",      "Engineer Mobile Turret",   "Default,Drones" ,        "woooshhhphewww,*lasers you*" ),
-                new ConfigBodyIndex( "MegaDrone",             "TC-280 Prototype",         "Default" ,               "DESTRUCTION,APOCALYPSE,ARMAGEDDON,BAD INVESTMENT" ),
+                new ConfigBodyIndex( "MegaDrone",             "TC-280 Prototype",         "Default" ,               "DESTRUCTION,APOCALYPSE,ARMAGEDDON,BAD INVESTMENT,I <3 VOID SEED,*DIES*" ),
                 new ConfigBodyIndex( "DroneCommander",        "Col. Droneman",            "Default" ,               "Col. Beep Boop" ),
                 new ConfigBodyIndex( "BeetleGuardAlly",       "Beetle Guard",             "Default" ,               "Sir Dies-A-Lot" ),
                 new ConfigBodyIndex( "SquidTurret",           "Squid Polyp",              "Default" ,               "Agent 3,Agent 4,Free Scrap,Scrap Me" ),
