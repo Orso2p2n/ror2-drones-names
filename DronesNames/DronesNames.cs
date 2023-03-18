@@ -14,7 +14,8 @@ namespace DronesNames
     [BepInDependency(R2API.R2API.PluginGUID)]
     [BepInPlugin(PluginGUID, PluginName, PluginVersion)]
     [R2APISubmoduleDependency(nameof(LanguageAPI))]
-
+    [NetworkCompatibility(CompatibilityLevel.NoNeedForSync, VersionStrictness.DifferentModVersionsAreOk)]
+    
     public class DronesNames : BaseUnityPlugin
     {
         public const string PluginGUID = PluginAuthor + "." + PluginName;
