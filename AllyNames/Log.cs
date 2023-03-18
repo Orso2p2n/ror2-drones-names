@@ -1,6 +1,6 @@
 ﻿using BepInEx.Logging;
 
-namespace DronesNames
+namespace AllyNames
 {
     internal static class Log
     {

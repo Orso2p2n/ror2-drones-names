@@ -9,22 +9,22 @@ using UnityEngine.Networking;
 using UnityEngine.AddressableAssets;
 using BepInEx.Configuration;
 
-namespace DronesNames
+namespace AllyNames
 {
     [BepInDependency(R2API.R2API.PluginGUID)]
     [BepInPlugin(PluginGUID, PluginName, PluginVersion)]
     [R2APISubmoduleDependency(nameof(LanguageAPI))]
     [NetworkCompatibility(CompatibilityLevel.NoNeedForSync, VersionStrictness.DifferentModVersionsAreOk)]
-    
-    public class DronesNames : BaseUnityPlugin
+
+    public class AllyNames : BaseUnityPlugin
     {
         public const string PluginGUID = PluginAuthor + "." + PluginName;
-        public const string PluginAuthor = "Orso_SaltyFinalBoss";
-        public const string PluginName = "DronesNames";
+        public const string PluginAuthor = "SwagWizards";
+        public const string PluginName = "AllyNames";
         public const string PluginVersion = "1.0.0";
 
         public const bool LogDebug = true;
-        public static DronesNames instance;
+        public static AllyNames instance;
 
         public static Dictionary<uint,string> savedTokens = new Dictionary<uint,string>();
 
@@ -162,7 +162,7 @@ namespace DronesNames
         // META FUNCTIONS
         private void InitConfig()
         {
-            namesConfigFile = new ConfigFile(Paths.ConfigPath + "\\DronesNames.cfg", true);
+            namesConfigFile = new ConfigFile(Paths.ConfigPath + "\\AllyNames.cfg", true);
             
             NamesList.InitConfig();
         }

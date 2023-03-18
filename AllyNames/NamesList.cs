@@ -4,7 +4,7 @@ using BepInEx.Configuration;
 using System;
 using System.Text;
 
-namespace DronesNames
+namespace AllyNames
 {
     public struct NamesByBodyIndex
     {
@@ -37,7 +37,7 @@ namespace DronesNames
             this.categories = categories;
             this.names = names;
 
-            configEntry = DronesNames.instance.Config.Bind<string>(
+            configEntry = AllyNames.instance.Config.Bind<string>(
                 "Categories and names by Body Index",
                 bodyIndex,
 
@@ -60,7 +60,7 @@ namespace DronesNames
             this.category = category;
             this.names = names;
 
-            configEntry = DronesNames.instance.Config.Bind<string>(
+            configEntry = AllyNames.instance.Config.Bind<string>(
                 "Custom Categories",
                 category,
 
@@ -175,11 +175,11 @@ namespace DronesNames
             var netIdValue = characterMaster.networkIdentity.netId.Value;
             
             // If already saved in the tokens list, just return that
-            if (DronesNames.savedTokens.ContainsKey(netIdValue))
+            if (AllyNames.savedTokens.ContainsKey(netIdValue))
             {
-                if (DronesNames.LogDebug) Log.LogDebug("Found token " + DronesNames.savedTokens[netIdValue] + " at ID " + netIdValue);
+                if (AllyNames.LogDebug) Log.LogDebug("Found token " + AllyNames.savedTokens[netIdValue] + " at ID " + netIdValue);
                 
-                return DronesNames.savedTokens[netIdValue];
+                return AllyNames.savedTokens[netIdValue];
             }
 
             var bodyIndex = characterBody.bodyIndex;
@@ -228,7 +228,7 @@ namespace DronesNames
             var randomIndex = forcedIndex != -1 ? forcedIndex : rng.RangeInt(0, namesDictionary.Count);
             string randomToken = namesDictionary.ElementAt(randomIndex).Key;
 
-            if (DronesNames.LogDebug)
+            if (AllyNames.LogDebug)
             {
                 if (forcedIndex == -1) 
                 {
@@ -241,13 +241,13 @@ namespace DronesNames
             }
 
             // Add to the saved tokens
-            DronesNames.savedTokens.Add(netIdValue, randomToken);
+            AllyNames.savedTokens.Add(netIdValue, randomToken);
 
             // Store for empathy cores sync
             if (storeEmpathyCoreIndex)
             {
                 #pragma warning disable Publicizer001
-                DronesNames.empathyCoresNameIndexes.Add(characterMaster.minionOwnership.ownerMasterId, randomIndex);
+                AllyNames.empathyCoresNameIndexes.Add(characterMaster.minionOwnership.ownerMasterId, randomIndex);
                 #pragma warning restore Publicizer001
             }
 
@@ -263,9 +263,9 @@ namespace DronesNames
             var ownerId = characterMaster.minionOwnership.ownerMasterId;
             #pragma warning restore Publicizer001
 
-            if (DronesNames.empathyCoresNameIndexes.ContainsKey(ownerId))
+            if (AllyNames.empathyCoresNameIndexes.ContainsKey(ownerId))
             {
-                empathyCoresSyncedToken = DronesNames.empathyCoresNameIndexes[ownerId];
+                empathyCoresSyncedToken = AllyNames.empathyCoresNameIndexes[ownerId];
             }
             
             return empathyCoresSyncedToken;
