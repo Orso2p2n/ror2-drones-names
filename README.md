@@ -32,6 +32,9 @@ Mod comes with default lists of names, but everything is 100% customizable in th
 <details>
 <summary>Click to expand patch notes:</summary>
 
+- 1.0.2
+  - Removed default names for Empathy Cores.
+  - Added new names for TC-280 and Empathy Cores.
 - 1.0.1
   - Removed debug logs left in the release.
 - 1.0.0 - Initial Release
