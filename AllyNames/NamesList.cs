@@ -89,8 +89,13 @@ namespace AllyNames
             // Build categories and names by BodyIndex
             foreach (var configBodyIndex in configBodyIndexes)
             {
+
                 // Split config value by []
-                var splitValue = configBodyIndex.configEntry.Value.Split(new string[] { "[","]" }, StringSplitOptions.RemoveEmptyEntries);
+                var separator = "|_ALLY_NAMES_SEPARATOR_|";
+                var value = configBodyIndex.configEntry.Value;
+                value = value.Replace("][", separator);
+                value = value.Replace("]", "").Replace("[", "");
+                var splitValue = value.Split(new string[] { separator }, StringSplitOptions.None);
 
                 // Get categories and split them by ,
                 var categories = "";
@@ -129,6 +134,7 @@ namespace AllyNames
                 // Add names from Categories
                 foreach (var category in categoriesArray)
                 {
+                    // Log.LogDebug(category);
                     foreach (var name in namesByCategory[category])
                     {
                         var token = TurnNameIntoToken(name);
