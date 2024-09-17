@@ -6,12 +6,10 @@ Mod comes with default lists of names, but everything is 100% customizable in th
 
 ## Screenshots
 
-<img src="https://cdn.discordapp.com/attachments/896038839422947340/1086652260819419246/image.png">
-<img src="https://cdn.discordapp.com/attachments/896038839422947340/1086652322039484476/Risk_of_Rain_2_aIrXY1DUlr.png">
-
-<img src="https://cdn.discordapp.com/attachments/896038839422947340/1086652460820602940/image.png">
-<img src="https://cdn.discordapp.com/attachments/896038839422947340/1086652067231309934/image.png">
-
+![01](https://github.com/user-attachments/assets/2acc2825-8cd5-4968-ab0c-fd8ff58f81c7)
+![02](https://github.com/user-attachments/assets/50381aaf-99e9-46f2-a7d7-b6ce20358a5a)
+![03](https://github.com/user-attachments/assets/f6f2cabc-cfeb-4b30-9f67-c7f06c247103)
+![04](https://github.com/user-attachments/assets/f62636ce-f467-4f84-986c-d4d08fb049c0)
 
 ## Credits
 
