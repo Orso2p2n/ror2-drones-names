@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using BepInEx;
 using R2API;
 using R2API.Utils;
@@ -11,9 +10,8 @@ using BepInEx.Configuration;
 
 namespace AllyNames
 {
-    [BepInDependency(R2API.R2API.PluginGUID)]
+    [BepInDependency(LanguageAPI.PluginGUID)]
     [BepInPlugin(PluginGUID, PluginName, PluginVersion)]
-    [R2APISubmoduleDependency(nameof(LanguageAPI))]
     [NetworkCompatibility(CompatibilityLevel.NoNeedForSync, VersionStrictness.DifferentModVersionsAreOk)]
 
     public class AllyNames : BaseUnityPlugin
