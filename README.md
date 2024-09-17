@@ -30,6 +30,8 @@ Mod comes with default lists of names, but everything is 100% customizable in th
 <details>
 <summary>Click to expand patch notes:</summary>
 
+- 1.1.1
+  - Added Github link to the Thunderstore page.
 - 1.1.0
   - Updated for SOTS.
 - 1.0.3
