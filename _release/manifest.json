@@ -1,8 +1,8 @@
 ﻿{
-	"name": "AlloyAllyNames",
-	"version_number": "1.1.2",
-	"website_url": "https://github.com/OddBread/ror2-alloyed-drones-names/",
-	"description": "Gives silly names to allies, such as Drones, Turrets, Beetle Guards, etc. Updated to work with Alloyed Collective Companions.",
+	"name": "AllyNames",
+	"version_number": "1.1.1",
+	"website_url": "https://github.com/Orso2p2n/ror2-drones-names",
+	"description": "Gives silly names to allies, such as Drones, Turrets, Beetle Guards, etc.",
 	"dependencies": [
 		"bbepis-BepInExPack-5.4.2117",
 		"RiskofThunder-HookGenPatcher-1.2.4",
