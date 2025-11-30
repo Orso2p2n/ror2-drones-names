@@ -316,6 +316,18 @@ namespace AllyNames
                 new ConfigBodyIndex( "NullifierAlly",         "Void Reaver",              "Default,Void" ,          "the crap" ),
                 new ConfigBodyIndex( "VoidJailerAlly",        "Void Jailer",              "Default,Void" ,          "the lober" ),
                 new ConfigBodyIndex( "VoidMegaCrabAlly",      "Void Devastator",          "Default,Void" ,          "the cooler crap" ),
+                new ConfigBodyIndex( "BombardmentDrone",      "Bombardment Drone",          "Default,Drones" ,          "Tsar Bomba, Fat Man, Little Boy" ),
+                new ConfigBodyIndex( "JunkDrone",      "Junk Drone",          "Default,Drones" ,          "" ),
+                new ConfigBodyIndex( "RechargeDrone",      "Barrier Drone",          "Default,Drones" ,          "" ),
+                new ConfigBodyIndex( "JailerDrone",      "Jailer Drone",          "Default,Drones" ,          "" ),
+                new ConfigBodyIndex( "CleanupDrone",      "Cleanup Drone",          "Default,Drones" ,          "Roomba" ),
+                new ConfigBodyIndex( "CopycatDrone",      "Freeze Drone",          "Default,Drones" ,          "Frozone" ),
+                new ConfigBodyIndex( "HaulerDrone",      "Transport Drone",          "Default,Drones" ,          "" ),
+                new ConfigBodyIndex( "DTGunnerDroneBody",      "CROSSHAIRS",          "Default,Drones" ,          "Ruxin" ),
+                new ConfigBodyIndex( "DTHealingDroneBody",      "DOC",          "Default,Drones" ,          "Bunny" ),
+                new ConfigBodyIndex( "DTHaulerDroneBody",      "CHIRP",          "Default,Drones" ,          "Moose" ),
+                new ConfigBodyIndex( "FriendUnitBody",      "Best Buddy",          "Default" ,          "Friend Inside Me, Stupid Baby, Son" ),
+                new ConfigBodyIndex( "DroneBomber",      "Lt. Droneboy",          "Default" ,          "Lt. Beep Boop" ),
             };
         }    
     }

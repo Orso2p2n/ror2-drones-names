@@ -331,3 +331,4 @@ ASALocalRun/
 
 # References
 .references/
+.vscode/tasks.json
