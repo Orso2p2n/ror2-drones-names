@@ -5,6 +5,7 @@ Gives silly names to allies, such as Drones, Turrets, Beetle Guards, etc.
 Mod comes with default lists of names, but everything is 100% customizable in the config!
 
 Forked to provide names to the new Alloyed Collective companions, since the original seems unmaintained. If the original gets updated again I'll mark this as obsolete. 
+Doesn't work with Operator's drones for some reason. Unfortunately I am lazy.
 
 ## Screenshots
 
